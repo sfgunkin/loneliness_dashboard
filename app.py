@@ -33,6 +33,34 @@ DATA_PATH = r"F:\OneDrive\__Documents\Papers\Age_FGT\Data"
 UN_WPP_URL = "https://population.un.org/wpp/"
 UN_WPP_DOWNLOAD_URL = "https://population.un.org/wpp/Download/Standard/CSV/"
 
+# Country name mapping: UN WPP names -> Plotly/ISO names
+COUNTRY_NAME_MAP = {
+    'Türkiye': 'Turkey',
+    'United States of America': 'United States',
+    'Russian Federation': 'Russia',
+    'Iran (Islamic Republic of)': 'Iran',
+    'Bolivia (Plurinational State of)': 'Bolivia',
+    'Venezuela (Bolivarian Republic of)': 'Venezuela',
+    'Republic of Korea': 'South Korea',
+    "Dem. People's Republic of Korea": 'North Korea',
+    'United Republic of Tanzania': 'Tanzania',
+    'Viet Nam': 'Vietnam',
+    "Lao People's Democratic Republic": 'Laos',
+    'Syrian Arab Republic': 'Syria',
+    'Democratic Republic of the Congo': 'Democratic Republic of the Congo',
+    'Congo': 'Republic of the Congo',
+    "Côte d'Ivoire": 'Ivory Coast',
+    'Czechia': 'Czech Republic',
+    'State of Palestine': 'Palestine',
+    'Republic of Moldova': 'Moldova',
+    'North Macedonia': 'North Macedonia',
+    'Brunei Darussalam': 'Brunei',
+    'Cabo Verde': 'Cape Verde',
+    'Timor-Leste': 'East Timor',
+    'Eswatini': 'Eswatini',
+    'Micronesia (Fed. States of)': 'Micronesia',
+}
+
 # Custom CSS for styling
 CUSTOM_CSS = """
 <style>
@@ -680,13 +708,20 @@ def plot_world_map(global_lbi: pd.DataFrame, year: int, metric: str = 'LBI') -> 
         'S_T': 'Blues'
     }
 
+    # Map UN country names to Plotly-compatible names
+    plot_data = global_lbi.copy()
+    plot_data['PlotLocation'] = plot_data['Location'].map(
+        lambda x: COUNTRY_NAME_MAP.get(x, x)
+    )
+
     fig = px.choropleth(
-        global_lbi,
-        locations='Location',
+        plot_data,
+        locations='PlotLocation',
         locationmode='country names',
         color=metric,
         hover_name='Location',
         hover_data={
+            'PlotLocation': False,
             'Location': False,
             'LBI': ':.4f',
             'LII': ':.4f',
