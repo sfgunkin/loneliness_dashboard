@@ -119,15 +119,6 @@ CUSTOM_CSS = """
         color: #495057;
     }
 
-    /* Info box styling */
-    .info-box {
-        background-color: #e7f3ff;
-        border-left: 4px solid #2196F3;
-        padding: 1rem;
-        border-radius: 0 8px 8px 0;
-        margin: 1rem 0;
-    }
-
     /* Footer styling */
     .footer {
         background-color: #f8f9fa;
@@ -797,9 +788,6 @@ def main():
     # Get unique locations and years
     locations = sorted(df['Location'].unique())
     years = sorted(df['Time'].unique())
-
-    # Separate countries from regions (heuristic: regions often have specific patterns)
-    # For now, just use all locations
 
     # ========== SIDEBAR CONTROLS ==========
     st.sidebar.image("https://img.icons8.com/fluency/96/combo-chart.png", width=60)
