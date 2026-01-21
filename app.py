@@ -12,6 +12,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
+import plotly.express as px
 from plotly.subplots import make_subplots
 import os
 
@@ -394,6 +395,30 @@ def calculate_time_series_fast(df_location: pd.DataFrame, location: str,
     return yearly[['Year', 'Location', 'LII', 'LBI', 'S_T', 'MF_ratio']]
 
 
+@st.cache_data(show_spinner="Calculating global LBI data...")
+def calculate_global_lbi(df_hash: int, year: int, T: int, alpha: float,
+                         c_max: int, _df: pd.DataFrame) -> pd.DataFrame:
+    """Calculate LBI for all locations for a given year."""
+    df_year = _df[_df['Time'] == year]
+    locations = df_year['Location'].unique()
+
+    results = []
+    for location in locations:
+        df_loc = df_year[df_year['Location'] == location]
+        indices = calculate_loneliness_indices(df_loc, T, alpha, c_max)
+        if indices is not None:
+            results.append({
+                'Location': location,
+                'LBI': indices['LBI'],
+                'LII': indices['LII'],
+                'S_T': indices['S_T'],
+                'MF_ratio': indices['MF_ratio'],
+                'N_T': indices['N_T']
+            })
+
+    return pd.DataFrame(results)
+
+
 # ============================================================================
 # DATA LOADING
 # ============================================================================
@@ -639,6 +664,70 @@ def plot_population_pyramid(data: Dict[str, Any], location: str, year: int) -> g
     return fig
 
 
+def plot_world_map(global_lbi: pd.DataFrame, year: int, metric: str = 'LBI') -> go.Figure:
+    """Plot interactive world choropleth map of LBI or LII."""
+
+    metric_titles = {
+        'LBI': 'Loneliness Burden Index (LBI)',
+        'LII': 'Loneliness Intensity Index (LII)',
+        'S_T': 'Share of Elderly Population'
+    }
+
+    # Color scales for different metrics
+    color_scales = {
+        'LBI': 'YlOrRd',
+        'LII': 'YlOrRd',
+        'S_T': 'Blues'
+    }
+
+    fig = px.choropleth(
+        global_lbi,
+        locations='Location',
+        locationmode='country names',
+        color=metric,
+        hover_name='Location',
+        hover_data={
+            'Location': False,
+            'LBI': ':.4f',
+            'LII': ':.4f',
+            'S_T': ':.2%',
+            'MF_ratio': ':.3f'
+        },
+        color_continuous_scale=color_scales.get(metric, 'YlOrRd'),
+        title=f'{metric_titles.get(metric, metric)} by Country ({year})'
+    )
+
+    fig.update_layout(
+        geo=dict(
+            showframe=False,
+            showcoastlines=True,
+            coastlinecolor='lightgray',
+            projection_type='natural earth',
+            showland=True,
+            landcolor='#f8f9fa',
+            showocean=True,
+            oceancolor='#e6f2ff',
+            showcountries=True,
+            countrycolor='lightgray'
+        ),
+        height=600,
+        margin=dict(l=0, r=0, t=50, b=0),
+        coloraxis_colorbar=dict(
+            title=metric,
+            tickformat='.2f' if metric != 'S_T' else '.0%'
+        )
+    )
+
+    # Enable scroll zoom for map interaction
+    fig.update_geos(
+        visible=True,
+        resolution=110,
+        showcountries=True
+    )
+
+    return fig
+
+
 # ============================================================================
 # MAIN APPLICATION
 # ============================================================================
@@ -834,7 +923,8 @@ def main():
         st.metric(label=f"M/F ratio 60+ - {comparator_loc}", value=f"{comparator_data['MF_ratio']:.3f}")
 
     # ========== TABS FOR VISUALIZATIONS ==========
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+        "🗺️ World Map",
         "📉 Time Series",
         "📊 Age-Specific Curves",
         "🔬 Components",
@@ -843,6 +933,43 @@ def main():
     ])
 
     with tab1:
+        st.subheader(f"Global Loneliness Burden Index ({year})")
+
+        # Calculate global LBI for the selected year
+        global_lbi = calculate_global_lbi(df_hash, year, T, alpha, c_max, df)
+
+        # Metric selector for map
+        map_metric = st.radio(
+            "Select metric to display:",
+            options=['LBI', 'LII', 'S_T'],
+            format_func=lambda x: {'LBI': 'Loneliness Burden Index (LBI)',
+                                   'LII': 'Loneliness Intensity Index (LII)',
+                                   'S_T': 'Share of Elderly Population'}[x],
+            horizontal=True
+        )
+
+        # World map
+        fig_map = plot_world_map(global_lbi, year, map_metric)
+        st.plotly_chart(fig_map, use_container_width=True, config={'scrollZoom': True})
+
+        # Top/Bottom countries
+        col_top, col_bottom = st.columns(2)
+
+        with col_top:
+            st.markdown(f"**Top 10 Countries by {map_metric}**")
+            top_10 = global_lbi.nlargest(10, map_metric)[['Location', 'LBI', 'LII', 'S_T']].reset_index(drop=True)
+            top_10.index = top_10.index + 1
+            st.dataframe(top_10.style.format({'LBI': '{:.4f}', 'LII': '{:.4f}', 'S_T': '{:.2%}'}),
+                        use_container_width=True)
+
+        with col_bottom:
+            st.markdown(f"**Bottom 10 Countries by {map_metric}**")
+            bottom_10 = global_lbi.nsmallest(10, map_metric)[['Location', 'LBI', 'LII', 'S_T']].reset_index(drop=True)
+            bottom_10.index = bottom_10.index + 1
+            st.dataframe(bottom_10.style.format({'LBI': '{:.4f}', 'LII': '{:.4f}', 'S_T': '{:.2%}'}),
+                        use_container_width=True)
+
+    with tab2:
         st.subheader("Loneliness Indices Over Time")
 
         col1, col2 = st.columns(2)
@@ -859,7 +986,7 @@ def main():
         fig_st_ts = plot_time_series_comparison(primary_ts, comparator_ts, 'S_T')
         st.plotly_chart(fig_st_ts, use_container_width=True)
 
-    with tab2:
+    with tab3:
         st.subheader(f"Age-Specific Analysis ({year})")
 
         # LI_c curves
@@ -870,7 +997,7 @@ def main():
         fig_lb = plot_loneliness_burden_curves(primary_data, comparator_data, primary_loc, comparator_loc, year)
         st.plotly_chart(fig_lb, use_container_width=True)
 
-    with tab3:
+    with tab4:
         st.subheader("Index Components")
 
         st.markdown(f"""
@@ -886,7 +1013,7 @@ def main():
         fig_comp2 = plot_components(comparator_data, comparator_loc, year, alpha)
         st.plotly_chart(fig_comp2, use_container_width=True)
 
-    with tab4:
+    with tab5:
         st.subheader("Elderly Population Structure")
 
         col1, col2 = st.columns(2)
@@ -899,7 +1026,7 @@ def main():
             fig_pyr2 = plot_population_pyramid(comparator_data, comparator_loc, year)
             st.plotly_chart(fig_pyr2, use_container_width=True)
 
-    with tab5:
+    with tab6:
         st.subheader("Detailed Data")
 
         # Create comparison table
