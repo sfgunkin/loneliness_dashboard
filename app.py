@@ -900,8 +900,33 @@ def main():
     # Summary metrics
     st.header("📈 Summary Metrics")
 
+    # Light-tinted backgrounds matching graph colors
+    # Primary: #1f77b4 (blue) -> light tint; Secondary: #ff7f0e (orange) -> light tint
+    st.markdown("""
+    <style>
+        .metrics-primary {
+            background-color: rgba(31, 119, 180, 0.08);
+            border-left: 4px solid #1f77b4;
+            padding: 0.5rem 1rem;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 0.5rem;
+        }
+        .metrics-comparator {
+            background-color: rgba(255, 127, 14, 0.08);
+            border-left: 4px solid #ff7f0e;
+            padding: 0.5rem 1rem;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 0.5rem;
+        }
+        .metrics-primary h3, .metrics-comparator h3 {
+            margin: 0 0 0.25rem 0;
+            font-size: 1rem;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
     # Primary country row
-    st.markdown(f"**{primary_loc}**")
+    st.markdown(f'<div class="metrics-primary"><h3>{primary_loc}</h3></div>', unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
@@ -925,7 +950,7 @@ def main():
                   delta=f"{delta_mf:+.3f}" if delta_mf != 0 else None)
 
     # Comparator country row
-    st.markdown(f"**{comparator_loc}**")
+    st.markdown(f'<div class="metrics-comparator"><h3>{comparator_loc}</h3></div>', unsafe_allow_html=True)
     col5, col6, col7, col8 = st.columns(4)
 
     with col5:
