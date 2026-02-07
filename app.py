@@ -65,30 +65,43 @@ COUNTRY_NAME_MAP = {
 CUSTOM_CSS = """
 <style>
     /* Light sage page background */
-    .stApp, .stApp > header, [data-testid="stHeader"] {
+    .stApp, .stApp > header {
         background-color: #dce8dc;
     }
+    /* Use Streamlit header bar for sticky dashboard title */
+    [data-testid="stHeader"] {
+        background: linear-gradient(135deg, #3a7d5c 0%, #2d5a4a 100%);
+        height: auto;
+    }
     .block-container {
-        padding-top: 1rem !important;
+        padding-top: 0.5rem !important;
     }
 
-    /* Main header styling - compact, forest green */
+    /* Sticky header in top bar */
     .main-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 999;
         background: linear-gradient(135deg, #3a7d5c 0%, #2d5a4a 100%);
-        padding: 0.8rem 1.8rem;
-        border-radius: 10px;
-        margin-bottom: 0.6rem;
+        padding: 0.5rem 1.8rem;
         color: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
     .main-header h1 {
         color: white !important;
-        margin-bottom: 0.2rem;
-        font-size: 1.5rem;
+        margin-bottom: 0.1rem;
+        font-size: 1.3rem;
     }
     .main-header p {
         color: rgba(255,255,255,0.9);
-        font-size: 0.9rem;
+        font-size: 0.8rem;
         margin-bottom: 0;
+    }
+    /* Spacer to push content below the fixed header */
+    .header-spacer {
+        height: 3.5rem;
     }
 
     /* Compact intro text */
@@ -811,12 +824,13 @@ def main():
     # Apply custom CSS
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
-    # Header with gradient background
+    # Sticky header
     st.markdown("""
     <div class="main-header">
         <h1>Loneliness Risk Index Dashboard</h1>
         <p>Demographic loneliness risk visualization based on Lokshin & Foster methodology</p>
     </div>
+    <div class="header-spacer"></div>
     """, unsafe_allow_html=True)
 
     # Introduction with data source link
