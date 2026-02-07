@@ -64,45 +64,74 @@ COUNTRY_NAME_MAP = {
 # Custom CSS for styling
 CUSTOM_CSS = """
 <style>
-    /* Main header styling */
+    /* Reduce Streamlit default top padding */
+    .block-container {
+        padding-top: 1rem !important;
+    }
+
+    /* Main header styling - compact */
     .main-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1.5rem 2rem;
-        border-radius: 10px;
-        margin-bottom: 1.5rem;
+        padding: 0.8rem 1.8rem;
+        border-radius: 8px;
+        margin-bottom: 0.6rem;
         color: white;
     }
     .main-header h1 {
         color: white !important;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.2rem;
+        font-size: 1.5rem;
     }
     .main-header p {
         color: rgba(255,255,255,0.9);
-        font-size: 1.1rem;
+        font-size: 0.9rem;
+        margin-bottom: 0;
     }
 
-    /* Metric cards styling */
+    /* Compact intro text */
+    .intro-text {
+        font-size: 0.85rem;
+        margin-bottom: 0.3rem;
+    }
+
+    /* Metric cards styling - condensed */
     div[data-testid="stMetric"] {
         background-color: #f8f9fa;
         border: 1px solid #e9ecef;
-        border-radius: 8px;
-        padding: 1rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        border-radius: 6px;
+        padding: 0.5rem 0.7rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     div[data-testid="stMetric"] label {
         color: #495057;
         font-weight: 500;
+        font-size: 0.78rem;
+    }
+    div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+        font-size: 1.1rem;
     }
 
-    /* Tab styling */
+    /* Reduce spacing around headers and elements */
+    .main .stMarkdown h2 {
+        font-size: 1.2rem;
+        margin-top: 0.3rem;
+        margin-bottom: 0.3rem;
+    }
+    .main .stDivider {
+        margin-top: 0.3rem;
+        margin-bottom: 0.3rem;
+    }
+
+    /* Tab styling - compact */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+        gap: 4px;
     }
     .stTabs [data-baseweb="tab"] {
         background-color: #f8f9fa;
-        border-radius: 8px 8px 0 0;
-        padding: 10px 20px;
+        border-radius: 6px 6px 0 0;
+        padding: 6px 14px;
         border: 1px solid #e9ecef;
+        font-size: 0.85rem;
     }
     .stTabs [aria-selected="true"] {
         background-color: #667eea;
@@ -766,18 +795,13 @@ def main():
     st.markdown("""
     <div class="main-header">
         <h1>Loneliness Risk Index Dashboard</h1>
-        <p>Interactive visualization of demographic loneliness risk based on Lokshin & Foster methodology</p>
+        <p>Demographic loneliness risk visualization based on Lokshin & Foster methodology</p>
     </div>
     """, unsafe_allow_html=True)
 
     # Introduction with data source link
-    st.markdown(f"""
-    Compare **loneliness burden** across countries and regions using population data from the
-    [UN World Population Prospects 2024]({UN_WPP_URL}). The index measures demographic
-    imbalances that may contribute to social isolation among elderly populations.
-    """)
-
-    st.divider()
+    st.markdown(f"""<p class="intro-text">Compare <b>loneliness burden</b> across countries using
+    <a href="{UN_WPP_URL}">UN World Population Prospects 2024</a> data.</p>""", unsafe_allow_html=True)
 
     # Load data
     df = load_un_data()
@@ -898,29 +922,28 @@ def main():
     # ========== DISPLAY RESULTS ==========
 
     # Summary metrics
-    st.header("📈 Summary Metrics")
+    st.markdown("#### Summary Metrics")
 
     # Light-tinted backgrounds matching graph colors
-    # Primary: #1f77b4 (blue) -> light tint; Secondary: #ff7f0e (orange) -> light tint
     st.markdown("""
     <style>
         .metrics-primary {
             background-color: rgba(31, 119, 180, 0.08);
-            border-left: 4px solid #1f77b4;
-            padding: 0.5rem 1rem;
-            border-radius: 0 8px 8px 0;
-            margin-bottom: 0.5rem;
+            border-left: 3px solid #1f77b4;
+            padding: 0.25rem 0.8rem;
+            border-radius: 0 6px 6px 0;
+            margin-bottom: 0.2rem;
         }
         .metrics-comparator {
             background-color: rgba(255, 127, 14, 0.08);
-            border-left: 4px solid #ff7f0e;
-            padding: 0.5rem 1rem;
-            border-radius: 0 8px 8px 0;
-            margin-bottom: 0.5rem;
+            border-left: 3px solid #ff7f0e;
+            padding: 0.25rem 0.8rem;
+            border-radius: 0 6px 6px 0;
+            margin-bottom: 0.2rem;
         }
         .metrics-primary h3, .metrics-comparator h3 {
-            margin: 0 0 0.25rem 0;
-            font-size: 1rem;
+            margin: 0;
+            font-size: 0.9rem;
         }
     </style>
     """, unsafe_allow_html=True)
