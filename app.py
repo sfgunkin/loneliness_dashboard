@@ -65,7 +65,7 @@ COUNTRY_NAME_MAP = {
 CUSTOM_CSS = """
 <style>
     /* Light sage page background */
-    .stApp {
+    .stApp, .stApp > header, [data-testid="stHeader"] {
         background-color: #dce8dc;
     }
     .block-container {
