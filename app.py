@@ -53,11 +53,11 @@ COLOR = {
 UN_WPP_URL = "https://population.un.org/wpp/"
 UN_WPP_DOWNLOAD_URL = "https://population.un.org/wpp/Download/Standard/CSV/"
 
-METRIC_LABELS = {
-    'LBI': 'Loneliness Burden Index',
-    'LII': 'Loneliness Intensity Index',
-    'S_T': 'Share of Elderly Population',
-}
+def metric_label(key: str, T: int = 60) -> str:
+    return {'LBI': 'Loneliness Burden Index',
+            'LII': 'Loneliness Intensity Index',
+            'S_T': f'Share of population {T}+',
+            'MF_ratio': f'M/F ratio ({T}+)'}[key]
 
 
 def hex_to_rgba(hex_color: str, alpha: float) -> str:
@@ -359,7 +359,7 @@ def plot_burden(pdata, cdata, ploc, cloc, year):
     return fig
 
 
-def plot_time_series(pts, cts, metric='LBI'):
+def plot_time_series(pts, cts, metric='LBI', T=60):
     fig = go.Figure()
     ploc = pts['Location'].iloc[0] if not pts.empty else 'Location 1'
     cloc = cts['Location'].iloc[0] if not cts.empty else 'Location 2'
@@ -369,7 +369,7 @@ def plot_time_series(pts, cts, metric='LBI'):
             line=dict(color=clr, width=2), marker=dict(size=4)))
     fig.add_vline(x=2024, line_dash="dash", line_color="gray",
                   annotation_text="2024", annotation_position="top right")
-    fig.update_layout(title=METRIC_LABELS.get(metric, metric) + ' Over Time',
+    fig.update_layout(title=metric_label(metric, T) + ' Over Time',
                       xaxis_title='Year', yaxis_title=metric,
                       legend=_legend('top-left'), hovermode='x unified')
     return fig
@@ -412,8 +412,9 @@ def plot_pyramid(data, location, year):
     return fig
 
 
-def plot_world_map(global_lbi, year, metric='LBI'):
-    scales = {'LBI': 'YlOrRd', 'LII': 'YlOrRd', 'S_T': 'Blues'}
+def plot_world_map(global_lbi, year, metric='LBI', T=60):
+    scales = {'LBI': 'YlOrRd', 'LII': 'YlOrRd', 'S_T': 'Blues', 'MF_ratio': 'RdBu'}
+    tick_fmts = {'S_T': '.0%', 'MF_ratio': '.2f'}
     df = global_lbi.copy()
     df['ISO3'] = df['Location'].map(COUNTRY_TO_ISO3)
     df = df.dropna(subset=['ISO3'])
@@ -424,7 +425,7 @@ def plot_world_map(global_lbi, year, metric='LBI'):
         hover_data={'ISO3': False, 'Location': False,
                     'LBI': ':.3f', 'LII': ':.3f', 'S_T': ':.2%', 'MF_ratio': ':.3f'},
         color_continuous_scale=scales.get(metric, 'YlOrRd'),
-        title=f'{METRIC_LABELS.get(metric, metric)} by Country ({year})')
+        title=f'{metric_label(metric, T)} by Country ({year})')
     fig.update_layout(
         geo=dict(showframe=False, showcoastlines=True, coastlinecolor='lightgray',
                  projection_type='natural earth', showland=True, landcolor='#f8f9fa',
@@ -432,7 +433,7 @@ def plot_world_map(global_lbi, year, metric='LBI'):
                  countrycolor='lightgray', resolution=110),
         height=600, margin=dict(l=0, r=0, t=50, b=0),
         coloraxis_colorbar=dict(title=metric,
-                                tickformat='.2f' if metric != 'S_T' else '.0%'))
+                                tickformat=tick_fmts.get(metric, '.2f')))
     return fig
 
 
@@ -497,14 +498,14 @@ def render_metrics(pd_, cd_, ploc, cloc, year, T):
             st.metric(label, f"{cv:{fmt}}")
 
 
-def render_tab_time_series(pts, cts):
+def render_tab_time_series(pts, cts, T):
     st.subheader("Loneliness Indices Over Time")
     c1, c2 = st.columns(2)
     with c1:
-        st.plotly_chart(plot_time_series(pts, cts, 'LII'), use_container_width=True)
+        st.plotly_chart(plot_time_series(pts, cts, 'LII', T), use_container_width=True)
     with c2:
-        st.plotly_chart(plot_time_series(pts, cts, 'LBI'), use_container_width=True)
-    st.plotly_chart(plot_time_series(pts, cts, 'S_T'), use_container_width=True)
+        st.plotly_chart(plot_time_series(pts, cts, 'LBI', T), use_container_width=True)
+    st.plotly_chart(plot_time_series(pts, cts, 'S_T', T), use_container_width=True)
 
 
 def render_tab_curves(pd_, cd_, ploc, cloc, year):
@@ -573,17 +574,17 @@ def render_tab_data(pd_, cd_, ploc, cloc, year, pts, cts):
 def render_tab_map(df_hash, year, T, alpha, c_max, df):
     st.subheader(f"Global Loneliness Burden Index ({year})")
     glbi = _global_lbi(df_hash, year, T, alpha, c_max, df)
-    metric = st.radio("Select metric:", ['LBI', 'LII', 'S_T'],
-        format_func=lambda x: METRIC_LABELS[x], horizontal=True)
-    st.plotly_chart(plot_world_map(glbi, year, metric),
+    metric = st.radio("Select metric:", ['LBI', 'LII', 'S_T', 'MF_ratio'],
+        format_func=lambda x: metric_label(x, T), horizontal=True)
+    st.plotly_chart(plot_world_map(glbi, year, metric, T),
                     use_container_width=True, config={'scrollZoom': True})
 
-    fmt = {'LBI': '{:.3f}', 'LII': '{:.3f}', 'S_T': '{:.2%}'}
+    fmt = {'LBI': '{:.3f}', 'LII': '{:.3f}', 'S_T': '{:.2%}', 'MF_ratio': '{:.3f}'}
     c1, c2 = st.columns(2)
     for col, label, fn in [(c1, "Top 10", 'nlargest'), (c2, "Bottom 10", 'nsmallest')]:
         with col:
-            st.markdown(f"**{label} Countries by {metric}**")
-            tbl = getattr(glbi, fn)(10, metric)[['Location', 'LBI', 'LII', 'S_T']].reset_index(drop=True)
+            st.markdown(f"**{label} Countries by {metric_label(metric, T)}**")
+            tbl = getattr(glbi, fn)(10, metric)[['Location', 'LBI', 'LII', 'S_T', 'MF_ratio']].reset_index(drop=True)
             tbl.index = tbl.index + 1
             st.dataframe(tbl.style.format(fmt), use_container_width=True)
 
@@ -667,7 +668,7 @@ def main():
         "\U0001f465 Population Pyramids", "\U0001f4cb Data Table", "\U0001f5fa\ufe0f World Map"])
 
     with tab1:
-        render_tab_time_series(pts, cts)
+        render_tab_time_series(pts, cts, T)
     with tab2:
         render_tab_curves(pd_, cd_, ploc, cloc, year)
     with tab3:
