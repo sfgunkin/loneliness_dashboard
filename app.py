@@ -917,12 +917,12 @@ def main():
 
     with col1:
         delta_lii = primary_data['LII'] - comparator_data['LII']
-        st.metric(label="Loneliness Intensity Index", value=f"{primary_data['LII']:.4f}",
+        st.metric(label="Loneliness Intensity Index", value=f"{primary_data['LII']:.3f}",
                   delta=f"{delta_lii:+.4f}" if delta_lii != 0 else None)
 
     with col2:
         delta_lbi = primary_data['LBI'] - comparator_data['LBI']
-        st.metric(label="Loneliness Burden Index", value=f"{primary_data['LBI']:.4f}",
+        st.metric(label="Loneliness Burden Index", value=f"{primary_data['LBI']:.3f}",
                   delta=f"{delta_lbi:+.4f}" if delta_lbi != 0 else None)
 
     with col3:
@@ -940,10 +940,10 @@ def main():
     col5, col6, col7, col8 = st.columns(4)
 
     with col5:
-        st.metric(label="Loneliness Intensity Index", value=f"{comparator_data['LII']:.4f}")
+        st.metric(label="Loneliness Intensity Index", value=f"{comparator_data['LII']:.3f}")
 
     with col6:
-        st.metric(label="Loneliness Burden Index", value=f"{comparator_data['LBI']:.4f}")
+        st.metric(label="Loneliness Burden Index", value=f"{comparator_data['LBI']:.3f}")
 
     with col7:
         st.metric(label=f"Share of elderly ({T}+)", value=f"{comparator_data['S_T']:.2%}")
@@ -1037,7 +1037,7 @@ def main():
         })
 
         st.dataframe(comparison_df.style.format({
-            col: '{:.4f}' for col in comparison_df.columns if col != 'Age'
+            col: '{:.3f}' for col in comparison_df.columns if col != 'Age'
         }), use_container_width=True)
 
         # Download buttons
@@ -1105,14 +1105,14 @@ def main():
             st.markdown(f"**Top 10 Countries by {map_metric}**")
             top_10 = global_lbi.nlargest(10, map_metric)[['Location', 'LBI', 'LII', 'S_T']].reset_index(drop=True)
             top_10.index = top_10.index + 1
-            st.dataframe(top_10.style.format({'LBI': '{:.4f}', 'LII': '{:.4f}', 'S_T': '{:.2%}'}),
+            st.dataframe(top_10.style.format({'LBI': '{:.3f}', 'LII': '{:.3f}', 'S_T': '{:.2%}'}),
                         use_container_width=True)
 
         with col_bottom:
             st.markdown(f"**Bottom 10 Countries by {map_metric}**")
             bottom_10 = global_lbi.nsmallest(10, map_metric)[['Location', 'LBI', 'LII', 'S_T']].reset_index(drop=True)
             bottom_10.index = bottom_10.index + 1
-            st.dataframe(bottom_10.style.format({'LBI': '{:.4f}', 'LII': '{:.4f}', 'S_T': '{:.2%}'}),
+            st.dataframe(bottom_10.style.format({'LBI': '{:.3f}', 'LII': '{:.3f}', 'S_T': '{:.2%}'}),
                         use_container_width=True)
 
     # Footer
