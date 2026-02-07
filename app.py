@@ -454,7 +454,7 @@ def render_sidebar(locations, years):
     sidebar_label("Parameters")
     alpha = st.sidebar.slider("\u03b1 (vulnerability)", 0.5, 2.5, 1.5, 0.1,
                               help="Controls how vulnerability increases with age. Paper uses \u03b1=1.5")
-    T = st.sidebar.slider("T (elderly threshold)", 55, 70, 60, 5,
+    T = st.sidebar.slider("T (elderly threshold)", 55, 80, 60, 1,
                           help="Age threshold for elderly population")
     c_max = st.sidebar.slider("c_max (max age)", 85, 100, 98, 1,
                               help="Maximum age in analysis")
