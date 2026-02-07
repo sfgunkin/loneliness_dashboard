@@ -967,52 +967,15 @@ def main():
 
     # ========== TABS FOR VISUALIZATIONS ==========
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "🗺️ World Map",
         "📉 Time Series",
         "📊 Age-Specific Curves",
         "🔬 Components",
         "👥 Population Pyramids",
-        "📋 Data Table"
+        "📋 Data Table",
+        "🗺️ World Map"
     ])
 
     with tab1:
-        st.subheader(f"Global Loneliness Burden Index ({year})")
-
-        # Calculate global LBI for the selected year
-        global_lbi = calculate_global_lbi(df_hash, year, T, alpha, c_max, df)
-
-        # Metric selector for map
-        map_metric = st.radio(
-            "Select metric to display:",
-            options=['LBI', 'LII', 'S_T'],
-            format_func=lambda x: {'LBI': 'Loneliness Burden Index (LBI)',
-                                   'LII': 'Loneliness Intensity Index (LII)',
-                                   'S_T': 'Share of Elderly Population'}[x],
-            horizontal=True
-        )
-
-        # World map
-        fig_map = plot_world_map(global_lbi, year, map_metric)
-        st.plotly_chart(fig_map, use_container_width=True, config={'scrollZoom': True})
-
-        # Top/Bottom countries
-        col_top, col_bottom = st.columns(2)
-
-        with col_top:
-            st.markdown(f"**Top 10 Countries by {map_metric}**")
-            top_10 = global_lbi.nlargest(10, map_metric)[['Location', 'LBI', 'LII', 'S_T']].reset_index(drop=True)
-            top_10.index = top_10.index + 1
-            st.dataframe(top_10.style.format({'LBI': '{:.4f}', 'LII': '{:.4f}', 'S_T': '{:.2%}'}),
-                        use_container_width=True)
-
-        with col_bottom:
-            st.markdown(f"**Bottom 10 Countries by {map_metric}**")
-            bottom_10 = global_lbi.nsmallest(10, map_metric)[['Location', 'LBI', 'LII', 'S_T']].reset_index(drop=True)
-            bottom_10.index = bottom_10.index + 1
-            st.dataframe(bottom_10.style.format({'LBI': '{:.4f}', 'LII': '{:.4f}', 'S_T': '{:.2%}'}),
-                        use_container_width=True)
-
-    with tab2:
         st.subheader("Loneliness Indices Over Time")
 
         col1, col2 = st.columns(2)
@@ -1029,7 +992,7 @@ def main():
         fig_st_ts = plot_time_series_comparison(primary_ts, comparator_ts, 'S_T')
         st.plotly_chart(fig_st_ts, use_container_width=True)
 
-    with tab3:
+    with tab2:
         st.subheader(f"Age-Specific Analysis ({year})")
 
         # LI_c curves
@@ -1040,7 +1003,7 @@ def main():
         fig_lb = plot_loneliness_burden_curves(primary_data, comparator_data, primary_loc, comparator_loc, year)
         st.plotly_chart(fig_lb, use_container_width=True)
 
-    with tab4:
+    with tab3:
         st.subheader("Index Components")
 
         st.markdown(f"""
@@ -1056,7 +1019,7 @@ def main():
         fig_comp2 = plot_components(comparator_data, comparator_loc, year, alpha)
         st.plotly_chart(fig_comp2, use_container_width=True)
 
-    with tab5:
+    with tab4:
         st.subheader("Elderly Population Structure")
 
         col1, col2 = st.columns(2)
@@ -1069,7 +1032,7 @@ def main():
             fig_pyr2 = plot_population_pyramid(comparator_data, comparator_loc, year)
             st.plotly_chart(fig_pyr2, use_container_width=True)
 
-    with tab6:
+    with tab5:
         st.subheader("Detailed Data")
 
         # Create comparison table
@@ -1128,6 +1091,43 @@ def main():
                 file_name=f"loneliness_cross_{primary_loc}_{comparator_loc}_{year}.csv",
                 mime="text/csv"
             )
+
+    with tab6:
+        st.subheader(f"Global Loneliness Burden Index ({year})")
+
+        # Calculate global LBI for the selected year
+        global_lbi = calculate_global_lbi(df_hash, year, T, alpha, c_max, df)
+
+        # Metric selector for map
+        map_metric = st.radio(
+            "Select metric to display:",
+            options=['LBI', 'LII', 'S_T'],
+            format_func=lambda x: {'LBI': 'Loneliness Burden Index (LBI)',
+                                   'LII': 'Loneliness Intensity Index (LII)',
+                                   'S_T': 'Share of Elderly Population'}[x],
+            horizontal=True
+        )
+
+        # World map
+        fig_map = plot_world_map(global_lbi, year, map_metric)
+        st.plotly_chart(fig_map, use_container_width=True, config={'scrollZoom': True})
+
+        # Top/Bottom countries
+        col_top, col_bottom = st.columns(2)
+
+        with col_top:
+            st.markdown(f"**Top 10 Countries by {map_metric}**")
+            top_10 = global_lbi.nlargest(10, map_metric)[['Location', 'LBI', 'LII', 'S_T']].reset_index(drop=True)
+            top_10.index = top_10.index + 1
+            st.dataframe(top_10.style.format({'LBI': '{:.4f}', 'LII': '{:.4f}', 'S_T': '{:.2%}'}),
+                        use_container_width=True)
+
+        with col_bottom:
+            st.markdown(f"**Bottom 10 Countries by {map_metric}**")
+            bottom_10 = global_lbi.nsmallest(10, map_metric)[['Location', 'LBI', 'LII', 'S_T']].reset_index(drop=True)
+            bottom_10.index = bottom_10.index + 1
+            st.dataframe(bottom_10.style.format({'LBI': '{:.4f}', 'LII': '{:.4f}', 'S_T': '{:.2%}'}),
+                        use_container_width=True)
 
     # Footer
     st.markdown("---")
