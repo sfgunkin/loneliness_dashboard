@@ -491,7 +491,7 @@ def render_metrics(pd_, cd_, ploc, cloc, year, T):
             if show_delta:
                 d = pv - cv
                 if d != 0:
-                    dfmt = '+.4f' if fmt == '.3f' else ('+.2%' if fmt == '.2%' else '+.3f')
+                    dfmt = '+.3f' if fmt == '.3f' else ('+.2%' if fmt == '.2%' else '+.3f')
                     delta = f"{d:{dfmt}}"
             with col:
                 st.metric(label, f"{val:{fmt}}", delta)
