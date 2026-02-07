@@ -104,10 +104,10 @@ CUSTOM_CSS = """
     /* Metric cards - white cards on sage background */
     div[data-testid="stMetric"] {
         background-color: #ffffff;
-        border: 1px solid #c8d8c8;
+        border: 1px solid #b8ccb8;
         border-radius: 10px;
         padding: 0.5rem 0.7rem;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
     }
     div[data-testid="stMetric"] label {
         color: #495057;
