@@ -108,7 +108,7 @@ CUSTOM_CSS = """
         font-size: 0.78rem;
     }
     div[data-testid="stMetric"] [data-testid="stMetricValue"] {
-        font-size: 1.1rem;
+        font-size: 1.5rem;
     }
 
     /* Reduce spacing around headers and elements */
@@ -814,90 +814,53 @@ def main():
     years = sorted(df['Time'].unique())
 
     # ========== SIDEBAR CONTROLS ==========
-    st.sidebar.image("https://img.icons8.com/fluency/96/combo-chart.png", width=60)
-    st.sidebar.title("Dashboard Controls")
-
-    # About section in expander
-    with st.sidebar.expander("About this Dashboard", expanded=False):
-        st.markdown(f"""
-        This dashboard visualizes the **Loneliness Risk Index (LRI)**
-        developed by Lokshin & Foster to measure demographic factors
-        contributing to elderly loneliness.
-
-        **Key Indices:**
-        - **LII**: Loneliness Intensity Index
-        - **LBI**: Loneliness Burden Index
-
-        **Data Source:**
-        [UN World Population Prospects 2024]({UN_WPP_URL})
-        """)
-
-    st.sidebar.divider()
-
-    # Country/Region selection
-    st.sidebar.subheader("Location Selection")
+    st.sidebar.markdown("**Locations**")
 
     primary_loc = st.sidebar.selectbox(
-        "Primary Location",
+        "Primary",
         options=locations,
         index=locations.index('Japan') if 'Japan' in locations else 0
     )
 
     comparator_loc = st.sidebar.selectbox(
-        "Comparator Location",
+        "Comparator",
         options=[loc for loc in locations if loc != primary_loc],
         index=([loc for loc in locations if loc != primary_loc].index('Germany')
                if 'Germany' in locations and 'Germany' != primary_loc else 0)
     )
 
-    # Index parameters
-    st.sidebar.subheader("Index Parameters")
+    st.sidebar.markdown("**Parameters**")
 
     alpha = st.sidebar.slider(
-        "α (vulnerability parameter)",
-        min_value=0.5,
-        max_value=2.5,
-        value=1.5,
-        step=0.1,
+        "α (vulnerability)", min_value=0.5, max_value=2.5, value=1.5, step=0.1,
         help="Controls how vulnerability increases with age. Paper uses α=1.5"
     )
 
     T = st.sidebar.slider(
-        "T (elderly threshold)",
-        min_value=55,
-        max_value=70,
-        value=60,
-        step=5,
+        "T (elderly threshold)", min_value=55, max_value=70, value=60, step=5,
         help="Age threshold for elderly population"
     )
 
     c_max = st.sidebar.slider(
-        "c_max (maximum age)",
-        min_value=85,
-        max_value=100,
-        value=98,
-        step=1,
+        "c_max (max age)", min_value=85, max_value=100, value=98, step=1,
         help="Maximum age in analysis"
     )
 
-    # Year selection
-    st.sidebar.subheader("Time Selection")
+    st.sidebar.markdown("**Time**")
 
     year = st.sidebar.slider(
         "Cross-section year",
-        min_value=int(min(years)),
-        max_value=int(max(years)),
-        value=2023,
-        step=1
+        min_value=int(min(years)), max_value=int(max(years)), value=2023, step=1
     )
 
     year_range = st.sidebar.slider(
         "Time series range",
-        min_value=int(min(years)),
-        max_value=int(max(years)),
-        value=(1950, 2100),
-        step=5
+        min_value=int(min(years)), max_value=int(max(years)), value=(1950, 2100), step=5
     )
+
+    with st.sidebar.expander("About", expanded=False):
+        st.markdown(f"""Based on Lokshin & Foster's **Loneliness Risk Index**.
+        Data: [UN WPP 2024]({UN_WPP_URL})""")
 
     # ========== CALCULATE INDICES ==========
     df_primary_year = df[(df['Location'] == primary_loc) & (df['Time'] == year)]
