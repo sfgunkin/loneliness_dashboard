@@ -1071,43 +1071,43 @@ def main():
             col: '{:.4f}' for col in comparison_df.columns if col != 'Age'
         }), use_container_width=True)
 
-    # ========== DOWNLOAD SECTION ==========
-    st.header("📥 Download Results")
+        # Download buttons
+        st.subheader("📥 Download Results")
 
-    col1, col2 = st.columns(2)
+        col_dl1, col_dl2 = st.columns(2)
 
-    with col1:
-        ts_combined = pd.concat([primary_ts, comparator_ts])
-        csv_ts = ts_combined.to_csv(index=False)
-        st.download_button(
-            label="Download Time Series (CSV)",
-            data=csv_ts,
-            file_name=f"loneliness_ts_{primary_loc}_{comparator_loc}.csv",
-            mime="text/csv"
-        )
+        with col_dl1:
+            ts_combined = pd.concat([primary_ts, comparator_ts])
+            csv_ts = ts_combined.to_csv(index=False)
+            st.download_button(
+                label="Download Time Series (CSV)",
+                data=csv_ts,
+                file_name=f"loneliness_ts_{primary_loc}_{comparator_loc}.csv",
+                mime="text/csv"
+            )
 
-    with col2:
-        # Cross-section data
-        cross_df = pd.DataFrame({
-            'Age': primary_data['ages'],
-            f'{primary_loc}_PopMale': primary_data['pop_male'],
-            f'{primary_loc}_PopFemale': primary_data['pop_female'],
-            f'{primary_loc}_g_c': primary_data['g_c'],
-            f'{primary_loc}_V_c': primary_data['V_c'],
-            f'{primary_loc}_s_c': primary_data['s_c'],
-            f'{primary_loc}_LI_c': primary_data['LI_c'],
-            f'{comparator_loc}_PopMale': comparator_data['pop_male'],
-            f'{comparator_loc}_PopFemale': comparator_data['pop_female'],
-            f'{comparator_loc}_g_c': comparator_data['g_c'],
-            f'{comparator_loc}_LI_c': comparator_data['LI_c'],
-        })
-        csv_cross = cross_df.to_csv(index=False)
-        st.download_button(
-            label="Download Cross-Section (CSV)",
-            data=csv_cross,
-            file_name=f"loneliness_cross_{primary_loc}_{comparator_loc}_{year}.csv",
-            mime="text/csv"
-        )
+        with col_dl2:
+            # Cross-section data
+            cross_df = pd.DataFrame({
+                'Age': primary_data['ages'],
+                f'{primary_loc}_PopMale': primary_data['pop_male'],
+                f'{primary_loc}_PopFemale': primary_data['pop_female'],
+                f'{primary_loc}_g_c': primary_data['g_c'],
+                f'{primary_loc}_V_c': primary_data['V_c'],
+                f'{primary_loc}_s_c': primary_data['s_c'],
+                f'{primary_loc}_LI_c': primary_data['LI_c'],
+                f'{comparator_loc}_PopMale': comparator_data['pop_male'],
+                f'{comparator_loc}_PopFemale': comparator_data['pop_female'],
+                f'{comparator_loc}_g_c': comparator_data['g_c'],
+                f'{comparator_loc}_LI_c': comparator_data['LI_c'],
+            })
+            csv_cross = cross_df.to_csv(index=False)
+            st.download_button(
+                label="Download Cross-Section (CSV)",
+                data=csv_cross,
+                file_name=f"loneliness_cross_{primary_loc}_{comparator_loc}_{year}.csv",
+                mime="text/csv"
+            )
 
     # Footer
     st.markdown("---")
