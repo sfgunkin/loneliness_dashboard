@@ -895,7 +895,7 @@ def main():
     years = sorted(df['Time'].unique())
 
     # ========== SIDEBAR CONTROLS ==========
-    st.sidebar.markdown('<p style="color:#3a7d5c; font-size:1rem; font-weight:700; margin:0.5rem 0 0.3rem; border-bottom:2px solid #3a7d5c; padding-bottom:0.2rem;">Locations</p>', unsafe_allow_html=True)
+    st.sidebar.markdown('<p style="color:#3a7d5c; font-size:1rem; font-weight:700; margin:0.5rem 0 0.3rem; ">Locations</p>', unsafe_allow_html=True)
 
     primary_loc = st.sidebar.selectbox(
         "Primary",
@@ -910,7 +910,7 @@ def main():
                if 'Germany' in locations and 'Germany' != primary_loc else 0)
     )
 
-    st.sidebar.markdown('<p style="color:#3a7d5c; font-size:1rem; font-weight:700; margin:0.8rem 0 0.3rem; border-bottom:2px solid #3a7d5c; padding-bottom:0.2rem;">Parameters</p>', unsafe_allow_html=True)
+    st.sidebar.markdown('<p style="color:#3a7d5c; font-size:1rem; font-weight:700; margin:0.8rem 0 0.3rem; ">Parameters</p>', unsafe_allow_html=True)
 
     alpha = st.sidebar.slider(
         "α (vulnerability)", min_value=0.5, max_value=2.5, value=1.5, step=0.1,
@@ -927,7 +927,7 @@ def main():
         help="Maximum age in analysis"
     )
 
-    st.sidebar.markdown('<p style="color:#3a7d5c; font-size:1rem; font-weight:700; margin:0.8rem 0 0.3rem; border-bottom:2px solid #3a7d5c; padding-bottom:0.2rem;">Time</p>', unsafe_allow_html=True)
+    st.sidebar.markdown('<p style="color:#3a7d5c; font-size:1rem; font-weight:700; margin:0.8rem 0 0.3rem; ">Time</p>', unsafe_allow_html=True)
 
     year = st.sidebar.slider(
         "Cross-section year",
