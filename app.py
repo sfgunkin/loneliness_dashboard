@@ -101,7 +101,7 @@ CUSTOM_CSS = f"""
         color: {THEME['text_muted']}; font-weight: 500; font-size: 0.78rem;
     }}
     div[data-testid="stMetric"] [data-testid="stMetricValue"] {{
-        font-size: 1.8rem; color: {THEME['text']};
+        font-size: 1.5rem; color: {THEME['text']};
     }}
 
     .metrics-primary {{
@@ -112,7 +112,7 @@ CUSTOM_CSS = f"""
         background-color: {_sec_tint}; border-left: 3px solid {COLOR['secondary']};
         padding: 0.25rem 0.8rem; border-radius: 0 6px 6px 0; margin-bottom: 0.2rem;
     }}
-    .metrics-primary h3, .metrics-comparator h3 {{ margin: 0; font-size: 1.05rem; }}
+    .metrics-primary h3, .metrics-comparator h3 {{ margin: 0; font-size: 1.25rem; }}
 
     .main .stMarkdown h2 {{ font-size: 1.2rem; margin-top: 0.3rem; margin-bottom: 0.3rem; }}
 
