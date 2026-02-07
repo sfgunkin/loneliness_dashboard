@@ -580,11 +580,12 @@ def render_tab_map(df_hash, year, T, alpha, c_max, df):
                     use_container_width=True, config={'scrollZoom': True})
 
     fmt = {'LBI': '{:.3f}', 'LII': '{:.3f}', 'S_T': '{:.2%}', 'MF_ratio': '{:.3f}'}
+    countries = glbi[glbi['Location'].map(COUNTRY_TO_ISO3).notna()]
     c1, c2 = st.columns(2)
     for col, label, fn in [(c1, "Top 10", 'nlargest'), (c2, "Bottom 10", 'nsmallest')]:
         with col:
             st.markdown(f"**{label} Countries by {metric_label(metric, T)}**")
-            tbl = getattr(glbi, fn)(10, metric)[['Location', 'LBI', 'LII', 'S_T', 'MF_ratio']].reset_index(drop=True)
+            tbl = getattr(countries, fn)(10, metric)[['Location', 'LBI', 'LII', 'S_T', 'MF_ratio']].reset_index(drop=True)
             tbl.index = tbl.index + 1
             st.dataframe(tbl.style.format(fmt), use_container_width=True)
 
