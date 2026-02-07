@@ -926,7 +926,7 @@ def main():
     """, unsafe_allow_html=True)
 
     # Primary country row
-    st.markdown(f'<div class="metrics-primary"><h3>{primary_loc}</h3></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metrics-primary"><h3>{primary_loc} ({year})</h3></div>', unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
@@ -950,7 +950,7 @@ def main():
                   delta=f"{delta_mf:+.3f}" if delta_mf != 0 else None)
 
     # Comparator country row
-    st.markdown(f'<div class="metrics-comparator"><h3>{comparator_loc}</h3></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metrics-comparator"><h3>{comparator_loc} ({year})</h3></div>', unsafe_allow_html=True)
     col5, col6, col7, col8 = st.columns(4)
 
     with col5:
