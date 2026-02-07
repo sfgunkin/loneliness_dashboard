@@ -269,13 +269,11 @@ COUNTRY_ISO = {
 }
 
 
-def get_flag(location: str) -> str:
-    """Get flag image tag for a country name. Returns empty string for regions."""
-    iso = COUNTRY_ISO.get(location)
-    if not iso:
-        return ''
-    code = iso.lower()
-    return f'<img src="https://flagcdn.com/w24/{code}.png" style="vertical-align: middle; margin-right: 6px;" alt="{iso}">'
+def get_flag(location: str, color: str = '') -> str:
+    """Get colored circle indicator for a country. Color matches graph line."""
+    if color:
+        return f'<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:{color}; margin-right:6px; vertical-align:middle;"></span>'
+    return ''
 
 
 # ============================================================================
@@ -360,21 +358,20 @@ def add_comparison_traces(fig: go.Figure, primary_data: dict, comparator_data: d
         y=primary_y,
         mode='lines',
         name=primary_loc,
-        line=dict(color=COLOR_PALETTE['black'], width=2.5),
+        line=dict(color=COLOR_PALETTE['primary'], width=2.5),
     )
     if fill_primary:
         trace_kwargs['fill'] = 'tozeroy'
-        trace_kwargs['fillcolor'] = 'rgba(0, 0, 0, 0.1)'
+        trace_kwargs['fillcolor'] = f'rgba(58, 125, 92, 0.1)'
     fig.add_trace(go.Scatter(**trace_kwargs))
 
-    # Comparator location - dashed line
+    # Comparator location
     fig.add_trace(go.Scatter(
         x=comparator_data[x_key],
         y=comparator_y,
         mode='lines',
         name=comparator_loc,
-        line=dict(color=COLOR_PALETTE['black'], width=2.5,
-                  dash='dash' if dash_second else None),
+        line=dict(color=COLOR_PALETTE['secondary'], width=2.5),
     ))
 
     return fig
@@ -993,7 +990,7 @@ def main():
     """, unsafe_allow_html=True)
 
     # Primary country row
-    st.markdown(f'<div class="metrics-primary"><h3>{get_flag(primary_loc)}{primary_loc} ({year})</h3></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metrics-primary"><h3>{get_flag(primary_loc, COLOR_PALETTE["primary"])}{primary_loc} ({year})</h3></div>', unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
@@ -1017,7 +1014,7 @@ def main():
                   delta=f"{delta_mf:+.3f}" if delta_mf != 0 else None)
 
     # Comparator country row
-    st.markdown(f'<div class="metrics-comparator"><h3>{get_flag(comparator_loc)}{comparator_loc} ({year})</h3></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metrics-comparator"><h3>{get_flag(comparator_loc, COLOR_PALETTE["secondary"])}{comparator_loc} ({year})</h3></div>', unsafe_allow_html=True)
     col5, col6, col7, col8 = st.columns(4)
 
     with col5:
