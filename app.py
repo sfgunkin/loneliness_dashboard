@@ -931,22 +931,22 @@ def main():
 
     with col1:
         delta_lii = primary_data['LII'] - comparator_data['LII']
-        st.metric(label="LII", value=f"{primary_data['LII']:.4f}",
+        st.metric(label="Loneliness Intensity Index", value=f"{primary_data['LII']:.4f}",
                   delta=f"{delta_lii:+.4f}" if delta_lii != 0 else None)
 
     with col2:
         delta_lbi = primary_data['LBI'] - comparator_data['LBI']
-        st.metric(label="LBI", value=f"{primary_data['LBI']:.4f}",
+        st.metric(label="Loneliness Burden Index", value=f"{primary_data['LBI']:.4f}",
                   delta=f"{delta_lbi:+.4f}" if delta_lbi != 0 else None)
 
     with col3:
         delta_st = primary_data['S_T'] - comparator_data['S_T']
-        st.metric(label="S_T (elderly share)", value=f"{primary_data['S_T']:.2%}",
+        st.metric(label=f"Share of elderly ({T}+)", value=f"{primary_data['S_T']:.2%}",
                   delta=f"{delta_st:+.2%}" if delta_st != 0 else None)
 
     with col4:
         delta_mf = primary_data['MF_ratio'] - comparator_data['MF_ratio']
-        st.metric(label="M/F ratio 60+", value=f"{primary_data['MF_ratio']:.3f}",
+        st.metric(label=f"M/F ratio ({T}+)", value=f"{primary_data['MF_ratio']:.3f}",
                   delta=f"{delta_mf:+.3f}" if delta_mf != 0 else None)
 
     # Comparator country row
@@ -954,16 +954,16 @@ def main():
     col5, col6, col7, col8 = st.columns(4)
 
     with col5:
-        st.metric(label="LII", value=f"{comparator_data['LII']:.4f}")
+        st.metric(label="Loneliness Intensity Index", value=f"{comparator_data['LII']:.4f}")
 
     with col6:
-        st.metric(label="LBI", value=f"{comparator_data['LBI']:.4f}")
+        st.metric(label="Loneliness Burden Index", value=f"{comparator_data['LBI']:.4f}")
 
     with col7:
-        st.metric(label="S_T (elderly share)", value=f"{comparator_data['S_T']:.2%}")
+        st.metric(label=f"Share of elderly ({T}+)", value=f"{comparator_data['S_T']:.2%}")
 
     with col8:
-        st.metric(label="M/F ratio 60+", value=f"{comparator_data['MF_ratio']:.3f}")
+        st.metric(label=f"M/F ratio ({T}+)", value=f"{comparator_data['MF_ratio']:.3f}")
 
     # ========== TABS FOR VISUALIZATIONS ==========
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
