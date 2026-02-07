@@ -53,6 +53,16 @@ COLOR = {
 UN_WPP_URL = "https://population.un.org/wpp/"
 UN_WPP_DOWNLOAD_URL = "https://population.un.org/wpp/Download/Standard/CSV/"
 
+# Fields exported in cross-section download
+_EXPORT_FIELDS = [('PopMale', 'pop_male'), ('PopFemale', 'pop_female'),
+                  ('g_c', 'g_c'), ('V_c', 'V_c'), ('s_c', 's_c'), ('LI_c', 'LI_c')]
+_EXPORT_COMP = _EXPORT_FIELDS[:2] + _EXPORT_FIELDS[2:3] + _EXPORT_FIELDS[5:6]  # no V_c, s_c
+
+# Format strings for metric display
+_METRIC_FMT = {'LBI': '.3f', 'LII': '.3f', 'S_T': '.2%', 'MF_ratio': '.3f'}
+_TABLE_FMT = {k: '{:' + v + '}' for k, v in _METRIC_FMT.items()}
+
+
 def metric_label(key: str, T: int = 60) -> str:
     return {'LBI': 'Loneliness Burden Index',
             'LII': 'Loneliness Intensity Index',
@@ -61,7 +71,6 @@ def metric_label(key: str, T: int = 60) -> str:
 
 
 def hex_to_rgba(hex_color: str, alpha: float) -> str:
-    """Convert '#rrggbb' to 'rgba(r, g, b, alpha)'."""
     h = hex_color.lstrip('#')
     r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
     return f'rgba({r}, {g}, {b}, {alpha})'
@@ -173,9 +182,8 @@ def vulnerability_factor(ages: np.ndarray, T: int, alpha: float) -> np.ndarray:
     return np.power((ages - T + 1) / (T + 1), alpha)
 
 
-def safe_divide(numerator: np.ndarray, denominator: np.ndarray,
-                fill: float = 1.0) -> np.ndarray:
-    return numerator / np.where(denominator == 0, fill, denominator)
+def safe_divide(num: np.ndarray, den: np.ndarray, fill: float = 1.0) -> np.ndarray:
+    return num / np.where(den == 0, fill, den)
 
 
 # ============================================================================
@@ -208,7 +216,6 @@ def _yaxis(title: str) -> dict:
 
 def _add_pair(fig, primary, comparator, ploc, cloc, xk, yk,
               scale=1.0, fill_primary=False):
-    """Add primary + comparator line traces."""
     kw = dict(x=primary[xk], y=primary[yk] * scale, mode='lines', name=ploc,
               line=dict(color=COLOR['primary'], width=2.5))
     if fill_primary:
@@ -225,10 +232,7 @@ def _add_pair(fig, primary, comparator, ploc, cloc, xk, yk,
 
 def calculate_indices(df_cy: pd.DataFrame, T: int, alpha: float,
                       c_max: int) -> Optional[Dict[str, Any]]:
-    """Calculate Loneliness Index components for a country-year slice.
-
-    LI_c = |g_c| * V_c(a) * s_c;  LII = sum(LI_c)*100;  LBI = S_T * LII
-    """
+    """LI_c = |g_c| * V_c * s_c;  LII = sum(LI_c)*100;  LBI = S_T * LII"""
     eld = filter_elderly(df_cy, T, c_max)
     if eld.empty:
         return None
@@ -247,24 +251,21 @@ def calculate_indices(df_cy: pd.DataFrame, T: int, alpha: float,
     V_c = vulnerability_factor(ages, T, alpha)
     LI_c = np.abs(g_c) * V_c * s_c
     LII = np.sum(LI_c) * 100
-    LBI = S_T * LII
 
     return dict(ages=ages, pop_male=pm, pop_female=pf,
                 s_c=s_c, g_c=g_c, V_c=V_c, LI_c=LI_c,
-                LII=LII, LBI=LBI, S_T=S_T, N_T=N_T,
+                LII=LII, LBI=S_T * LII, S_T=S_T, N_T=N_T,
                 MF_ratio=np.sum(pm) / np.sum(pf) if np.sum(pf) > 0 else 0)
 
 
 def _time_series_vectorized(df_loc: pd.DataFrame, location: str,
                              T: int, alpha: float, c_max: int) -> pd.DataFrame:
-    """LII and LBI for all years (vectorized)."""
     eld = filter_elderly(df_loc, T, c_max)
     if eld.empty:
         return pd.DataFrame()
 
     ages = np.arange(T, c_max + 1)
-    V_map = dict(zip(ages, vulnerability_factor(ages, T, alpha)))
-    eld['V_c'] = eld['AgeGrpStart'].map(V_map)
+    eld['V_c'] = eld['AgeGrpStart'].map(dict(zip(ages, vulnerability_factor(ages, T, alpha))))
 
     pop_total = (eld['PopMale'] + eld['PopFemale']).replace(0, 1)
     eld['g_c'] = (eld['PopFemale'] - eld['PopMale']) / pop_total
@@ -336,26 +337,23 @@ def _cached_ts(df_hash: int, location: str, T: int, alpha: float,
 # VISUALIZATION FUNCTIONS
 # ============================================================================
 
-def plot_intensity(pdata, cdata, ploc, cloc, year):
+def _plot_age_curve(pdata, cdata, ploc, cloc, year, burden=False):
+    """Age-specific LI(c) or LB(c) = S_T * LI(c) curves."""
     fig = go.Figure()
-    _add_pair(fig, pdata, cdata, ploc, cloc, 'ages', 'LI_c', scale=100.0)
+    if burden:
+        pd_ = dict(ages=pdata['ages'], y=pdata['S_T'] * pdata['LI_c'])
+        cd_ = dict(ages=cdata['ages'], y=cdata['S_T'] * cdata['LI_c'])
+        title = f'Age-Specific Loneliness Burden LB(c) = S_T \u00d7 LI(c), {year}'
+        ylabel = 'LB(c) = S_T \u00d7 |g(c)| \u00d7 V(c) \u00d7 s(c)'
+    else:
+        pd_ = dict(ages=pdata['ages'], y=pdata['LI_c'])
+        cd_ = dict(ages=cdata['ages'], y=cdata['LI_c'])
+        title = f'Age-Specific Loneliness Index LI(c), {year}'
+        ylabel = 'LI(c) = |g(c)| \u00d7 V(c) \u00d7 s(c)'
+    _add_pair(fig, pd_, cd_, ploc, cloc, 'ages', 'y', scale=100.0, fill_primary=burden)
     fig.update_layout(
-        title=dict(text=f'Age-Specific Loneliness Index LI(c), {year}', font=dict(size=16)),
-        xaxis=_xaxis(pdata['ages']),
-        yaxis=_yaxis('LI(c) = |g(c)| \u00d7 V(c) \u00d7 s(c)'),
-        legend=_legend(), plot_bgcolor='white', hovermode='x unified', height=500)
-    return fig
-
-
-def plot_burden(pdata, cdata, ploc, cloc, year):
-    fig = go.Figure()
-    pb = dict(ages=pdata['ages'], LB_c=pdata['S_T'] * pdata['LI_c'])
-    cb = dict(ages=cdata['ages'], LB_c=cdata['S_T'] * cdata['LI_c'])
-    _add_pair(fig, pb, cb, ploc, cloc, 'ages', 'LB_c', scale=100.0, fill_primary=True)
-    fig.update_layout(
-        title=dict(text=f'Age-Specific Loneliness Burden LB(c) = S_T \u00d7 LI(c), {year}', font=dict(size=16)),
-        xaxis=_xaxis(pdata['ages']),
-        yaxis=_yaxis('LB(c) = S_T \u00d7 |g(c)| \u00d7 V(c) \u00d7 s(c)'),
+        title=dict(text=title, font=dict(size=16)),
+        xaxis=_xaxis(pdata['ages']), yaxis=_yaxis(ylabel),
         legend=_legend(), plot_bgcolor='white', hovermode='x unified', height=500)
     return fig
 
@@ -478,24 +476,22 @@ def render_metrics(pd_, cd_, ploc, cloc, year, T):
         (f"Share of elderly ({T}+)", pd_['S_T'], cd_['S_T'], '.2%'),
         (f"M/F ratio ({T}+)", pd_['MF_ratio'], cd_['MF_ratio'], '.3f'),
     ]
-
-    # Primary row
-    st.markdown(f'<div class="metrics-primary"><h3>'
-                f'{color_dot(COLOR["primary"])}{ploc} ({year})</h3></div>',
-                unsafe_allow_html=True)
-    for col, (label, pv, cv, fmt) in zip(st.columns(4), metrics):
-        delta = pv - cv
-        dfmt = '+.4f' if fmt == '.3f' else ('+.2%' if fmt == '.2%' else '+.3f')
-        with col:
-            st.metric(label, f"{pv:{fmt}}", f"{delta:{dfmt}}" if delta != 0 else None)
-
-    # Comparator row
-    st.markdown(f'<div class="metrics-comparator"><h3>'
-                f'{color_dot(COLOR["secondary"])}{cloc} ({year})</h3></div>',
-                unsafe_allow_html=True)
-    for col, (label, _, cv, fmt) in zip(st.columns(4), metrics):
-        with col:
-            st.metric(label, f"{cv:{fmt}}")
+    for css_cls, clr, loc, show_delta in [
+        ('metrics-primary', COLOR['primary'], ploc, True),
+        ('metrics-comparator', COLOR['secondary'], cloc, False),
+    ]:
+        st.markdown(f'<div class="{css_cls}"><h3>{color_dot(clr)}{loc} ({year})</h3></div>',
+                    unsafe_allow_html=True)
+        for col, (label, pv, cv, fmt) in zip(st.columns(4), metrics):
+            val = pv if show_delta else cv
+            delta = None
+            if show_delta:
+                d = pv - cv
+                if d != 0:
+                    dfmt = '+.4f' if fmt == '.3f' else ('+.2%' if fmt == '.2%' else '+.3f')
+                    delta = f"{d:{dfmt}}"
+            with col:
+                st.metric(label, f"{val:{fmt}}", delta)
 
 
 def render_tab_time_series(pts, cts, T):
@@ -510,8 +506,8 @@ def render_tab_time_series(pts, cts, T):
 
 def render_tab_curves(pd_, cd_, ploc, cloc, year):
     st.subheader(f"Age-Specific Analysis ({year})")
-    st.plotly_chart(plot_intensity(pd_, cd_, ploc, cloc, year), use_container_width=True)
-    st.plotly_chart(plot_burden(pd_, cd_, ploc, cloc, year), use_container_width=True)
+    st.plotly_chart(_plot_age_curve(pd_, cd_, ploc, cloc, year), use_container_width=True)
+    st.plotly_chart(_plot_age_curve(pd_, cd_, ploc, cloc, year, burden=True), use_container_width=True)
 
 
 def render_tab_components(pd_, cd_, ploc, cloc, year, alpha):
@@ -536,16 +532,8 @@ def render_tab_data(pd_, cd_, ploc, cloc, year, pts, cts):
     st.subheader("Detailed Data")
     df = pd.DataFrame({
         'Age': pd_['ages'],
-        f'{ploc} - Males (k)': pd_['pop_male'],
-        f'{ploc} - Females (k)': pd_['pop_female'],
-        f'{ploc} - g_c': pd_['g_c'],
-        f'{ploc} - V_c': pd_['V_c'],
-        f'{ploc} - s_c': pd_['s_c'],
-        f'{ploc} - LI_c': pd_['LI_c'],
-        f'{cloc} - Males (k)': cd_['pop_male'],
-        f'{cloc} - Females (k)': cd_['pop_female'],
-        f'{cloc} - g_c': cd_['g_c'],
-        f'{cloc} - LI_c': cd_['LI_c'],
+        **{f'{ploc} - {k}': pd_[v] for k, v in _EXPORT_FIELDS},
+        **{f'{cloc} - {k}': cd_[v] for k, v in _EXPORT_COMP},
     })
     st.dataframe(df.style.format({c: '{:.3f}' for c in df.columns if c != 'Age'}),
                  use_container_width=True)
@@ -557,14 +545,10 @@ def render_tab_data(pd_, cd_, ploc, cloc, year, pts, cts):
             pd.concat([pts, cts]).to_csv(index=False),
             f"loneliness_ts_{ploc}_{cloc}.csv", "text/csv")
     with c2:
-        fields = [('PopMale', 'pop_male'), ('PopFemale', 'pop_female'),
-                  ('g_c', 'g_c'), ('V_c', 'V_c'), ('s_c', 's_c'), ('LI_c', 'LI_c')]
-        comp_fields = [('PopMale', 'pop_male'), ('PopFemale', 'pop_female'),
-                       ('g_c', 'g_c'), ('LI_c', 'LI_c')]
         cross = pd.DataFrame({
             'Age': pd_['ages'],
-            **{f'{ploc}_{k}': pd_[v] for k, v in fields},
-            **{f'{cloc}_{k}': cd_[v] for k, v in comp_fields},
+            **{f'{ploc}_{k}': pd_[v] for k, v in _EXPORT_FIELDS},
+            **{f'{cloc}_{k}': cd_[v] for k, v in _EXPORT_COMP},
         })
         st.download_button("Download Cross-Section (CSV)",
             cross.to_csv(index=False),
@@ -579,7 +563,6 @@ def render_tab_map(df_hash, year, T, alpha, c_max, df):
     st.plotly_chart(plot_world_map(glbi, year, metric, T),
                     use_container_width=True, config={'scrollZoom': True})
 
-    fmt = {'LBI': '{:.3f}', 'LII': '{:.3f}', 'S_T': '{:.2%}', 'MF_ratio': '{:.3f}'}
     countries = glbi[glbi['Location'].map(COUNTRY_TO_ISO3).notna()]
     c1, c2 = st.columns(2)
     for col, label, fn in [(c1, "Top 10", 'nlargest'), (c2, "Bottom 10", 'nsmallest')]:
@@ -587,7 +570,7 @@ def render_tab_map(df_hash, year, T, alpha, c_max, df):
             st.markdown(f"**{label} Countries by {metric_label(metric, T)}**")
             tbl = getattr(countries, fn)(10, metric)[['Location', 'LBI', 'LII', 'S_T', 'MF_ratio']].reset_index(drop=True)
             tbl.index = tbl.index + 1
-            st.dataframe(tbl.style.format(fmt), use_container_width=True)
+            st.dataframe(tbl.style.format(_TABLE_FMT), use_container_width=True)
 
 
 def render_footer(alpha, T, c_max):
