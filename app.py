@@ -211,7 +211,8 @@ def _xaxis(ages: np.ndarray, title: str = 'Age cohort') -> dict:
 def _yaxis(title: str) -> dict:
     return dict(title=dict(text=title, font=dict(size=_FONT_AXIS)),
                 tickfont=dict(size=_FONT_TICK),
-                showgrid=True, gridcolor='lightgray')
+                showgrid=True, gridcolor='lightgray',
+                hoverformat='.3f')
 
 
 def _add_pair(fig, primary, comparator, ploc, cloc, xk, yk,
@@ -369,7 +370,7 @@ def plot_time_series(pts, cts, metric='LBI', T=60):
     fig.add_vline(x=2024, line_dash="dash", line_color="gray",
                   annotation_text="2024", annotation_position="top right")
     fig.update_layout(title=metric_label(metric, T) + ' Over Time',
-                      xaxis_title='Year', yaxis_title=metric,
+                      xaxis_title='Year', yaxis=_yaxis(metric_label(metric, T)),
                       legend=_legend('top-left'), hovermode='x unified')
     return fig
 
@@ -387,8 +388,10 @@ def plot_components(data, location, year, alpha):
         marker_color=COLOR['male']), row=1, col=3)
     fig.update_layout(title=f'Components of Loneliness Index: {location} ({year})',
                       showlegend=False, height=350)
+    ylabels = ['Gender Ratio g(c)', 'Vulnerability V(c)', 'Cohort Share s(c)']
     for c in range(1, 4):
         fig.update_xaxes(title_text='Age', row=1, col=c)
+        fig.update_yaxes(title_text=ylabels[c - 1], hoverformat='.3f', row=1, col=c)
     return fig
 
 
