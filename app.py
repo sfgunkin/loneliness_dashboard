@@ -65,24 +65,23 @@ COUNTRY_NAME_MAP = {
 CUSTOM_CSS = """
 <style>
     /* Light sage page background */
-    .stApp, .stApp > header {
+    .stApp {
         background-color: #dce8dc;
     }
-    /* Streamlit header bar - becomes our sticky title bar */
+    /* Hide default Streamlit header bar */
     [data-testid="stHeader"] {
-        background: linear-gradient(135deg, #3a7d5c 0%, #2d5a4a 100%);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        display: none;
     }
     .block-container {
         padding-top: 0.5rem !important;
     }
 
-    /* Non-sticky header rendered inline */
+    /* Dashboard header - inline */
     .main-header {
         background: linear-gradient(135deg, #3a7d5c 0%, #2d5a4a 100%);
-        padding: 0.5rem 1.8rem;
-        border-radius: 0 0 10px 10px;
-        margin: -1rem -1rem 0.6rem -1rem;
+        padding: 0.6rem 1.8rem;
+        border-radius: 10px;
+        margin-bottom: 0.6rem;
         color: white;
     }
     .main-header h1 {
@@ -271,11 +270,12 @@ COUNTRY_ISO = {
 
 
 def get_flag(location: str) -> str:
-    """Get flag emoji for a country name. Returns empty string for regions."""
+    """Get flag image tag for a country name. Returns empty string for regions."""
     iso = COUNTRY_ISO.get(location)
     if not iso:
         return ''
-    return ''.join(chr(0x1F1E6 + ord(c) - ord('A')) for c in iso) + ' '
+    code = iso.lower()
+    return f'<img src="https://flagcdn.com/w24/{code}.png" style="vertical-align: middle; margin-right: 6px;" alt="{iso}">'
 
 
 # ============================================================================
