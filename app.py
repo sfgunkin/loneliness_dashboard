@@ -71,7 +71,7 @@ CUSTOM_CSS = """
 
     /* Main header styling - compact */
     .main-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
         padding: 0.8rem 1.8rem;
         border-radius: 8px;
         margin-bottom: 0.6rem;
@@ -134,7 +134,7 @@ CUSTOM_CSS = """
         font-size: 0.85rem;
     }
     .stTabs [aria-selected="true"] {
-        background-color: #667eea;
+        background-color: #0d9488;
         color: white;
     }
 
@@ -157,7 +157,7 @@ CUSTOM_CSS = """
         border: 1px solid #e9ecef;
     }
     .footer a {
-        color: #667eea;
+        color: #0d9488;
         text-decoration: none;
     }
     .footer a:hover {
@@ -166,21 +166,21 @@ CUSTOM_CSS = """
 
     /* Download buttons */
     .stDownloadButton button {
-        background-color: #667eea;
+        background-color: #0d9488;
         color: white;
         border: none;
         border-radius: 8px;
         padding: 0.5rem 1rem;
     }
     .stDownloadButton button:hover {
-        background-color: #5a6fd6;
+        background-color: #0f766e;
     }
 </style>
 """
 
 COLOR_PALETTE = {
-    'primary': '#1f77b4',
-    'secondary': '#ff7f0e',
+    'primary': '#0d9488',
+    'secondary': '#f97316',
     'black': '#000000',
     'male': '#3498db',
     'female': '#e91e63',
@@ -891,15 +891,15 @@ def main():
     st.markdown("""
     <style>
         .metrics-primary {
-            background-color: rgba(31, 119, 180, 0.08);
-            border-left: 3px solid #1f77b4;
+            background-color: rgba(13, 148, 136, 0.08);
+            border-left: 3px solid #0d9488;
             padding: 0.25rem 0.8rem;
             border-radius: 0 6px 6px 0;
             margin-bottom: 0.2rem;
         }
         .metrics-comparator {
-            background-color: rgba(255, 127, 14, 0.08);
-            border-left: 3px solid #ff7f0e;
+            background-color: rgba(249, 115, 22, 0.08);
+            border-left: 3px solid #f97316;
             padding: 0.25rem 0.8rem;
             border-radius: 0 6px 6px 0;
             margin-bottom: 0.2rem;
