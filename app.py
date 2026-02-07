@@ -64,16 +64,19 @@ COUNTRY_NAME_MAP = {
 # Custom CSS for styling
 CUSTOM_CSS = """
 <style>
-    /* Reduce Streamlit default top padding */
+    /* Light sage page background */
+    .stApp {
+        background-color: #dce8dc;
+    }
     .block-container {
         padding-top: 1rem !important;
     }
 
-    /* Main header styling - compact */
+    /* Main header styling - compact, forest green */
     .main-header {
-        background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+        background: linear-gradient(135deg, #3a7d5c 0%, #2d5a4a 100%);
         padding: 0.8rem 1.8rem;
-        border-radius: 8px;
+        border-radius: 10px;
         margin-bottom: 0.6rem;
         color: white;
     }
@@ -92,15 +95,19 @@ CUSTOM_CSS = """
     .intro-text {
         font-size: 0.85rem;
         margin-bottom: 0.3rem;
+        color: #2d3436;
+    }
+    .intro-text a {
+        color: #3a7d5c;
     }
 
-    /* Metric cards styling - condensed */
+    /* Metric cards - white cards on sage background */
     div[data-testid="stMetric"] {
-        background-color: #f8f9fa;
-        border: 1px solid #e9ecef;
-        border-radius: 6px;
+        background-color: #ffffff;
+        border: 1px solid #c8d8c8;
+        border-radius: 10px;
         padding: 0.5rem 0.7rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
     }
     div[data-testid="stMetric"] label {
         color: #495057;
@@ -109,6 +116,7 @@ CUSTOM_CSS = """
     }
     div[data-testid="stMetric"] [data-testid="stMetricValue"] {
         font-size: 1.5rem;
+        color: #2d3436;
     }
 
     /* Reduce spacing around headers and elements */
@@ -122,65 +130,77 @@ CUSTOM_CSS = """
         margin-bottom: 0.3rem;
     }
 
-    /* Tab styling - compact */
+    /* Tab styling - white tabs, green active */
     .stTabs [data-baseweb="tab-list"] {
         gap: 4px;
     }
     .stTabs [data-baseweb="tab"] {
-        background-color: #f8f9fa;
-        border-radius: 6px 6px 0 0;
+        background-color: #ffffff;
+        border-radius: 10px 10px 0 0;
         padding: 6px 14px;
-        border: 1px solid #e9ecef;
+        border: 1px solid #c8d8c8;
         font-size: 0.85rem;
+        color: #2d3436;
     }
     .stTabs [aria-selected="true"] {
-        background-color: #0d9488;
+        background-color: #3a7d5c;
         color: white;
     }
+    /* Tab content panel - white card */
+    .stTabs [data-baseweb="tab-panel"] {
+        background-color: #ffffff;
+        border-radius: 0 0 10px 10px;
+        padding: 1rem;
+        border: 1px solid #c8d8c8;
+        border-top: none;
+    }
 
-    /* Sidebar styling */
+    /* Sidebar - white */
     section[data-testid="stSidebar"] {
-        background-color: #f8f9fa;
+        background-color: #ffffff;
     }
     section[data-testid="stSidebar"] .stMarkdown h1,
     section[data-testid="stSidebar"] .stMarkdown h2,
     section[data-testid="stSidebar"] .stMarkdown h3 {
-        color: #495057;
+        color: #3a7d5c;
+    }
+    section[data-testid="stSidebar"] .stMarkdown strong {
+        color: #3a7d5c;
     }
 
     /* Footer styling */
     .footer {
-        background-color: #f8f9fa;
+        background-color: #ffffff;
         padding: 1.5rem;
         border-radius: 10px;
         margin-top: 2rem;
-        border: 1px solid #e9ecef;
+        border: 1px solid #c8d8c8;
     }
     .footer a {
-        color: #0d9488;
+        color: #3a7d5c;
         text-decoration: none;
     }
     .footer a:hover {
         text-decoration: underline;
     }
 
-    /* Download buttons */
+    /* Download buttons - forest green */
     .stDownloadButton button {
-        background-color: #0d9488;
+        background-color: #3a7d5c;
         color: white;
         border: none;
-        border-radius: 8px;
+        border-radius: 10px;
         padding: 0.5rem 1rem;
     }
     .stDownloadButton button:hover {
-        background-color: #0f766e;
+        background-color: #2d5a4a;
     }
 </style>
 """
 
 COLOR_PALETTE = {
-    'primary': '#0d9488',
-    'secondary': '#f97316',
+    'primary': '#3a7d5c',
+    'secondary': '#d4a843',
     'black': '#000000',
     'male': '#3498db',
     'female': '#e91e63',
@@ -891,15 +911,15 @@ def main():
     st.markdown("""
     <style>
         .metrics-primary {
-            background-color: rgba(13, 148, 136, 0.08);
-            border-left: 3px solid #0d9488;
+            background-color: rgba(58, 125, 92, 0.08);
+            border-left: 3px solid #3a7d5c;
             padding: 0.25rem 0.8rem;
             border-radius: 0 6px 6px 0;
             margin-bottom: 0.2rem;
         }
         .metrics-comparator {
-            background-color: rgba(249, 115, 22, 0.08);
-            border-left: 3px solid #f97316;
+            background-color: rgba(212, 168, 67, 0.1);
+            border-left: 3px solid #d4a843;
             padding: 0.25rem 0.8rem;
             border-radius: 0 6px 6px 0;
             margin-bottom: 0.2rem;
