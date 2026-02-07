@@ -157,7 +157,7 @@ CUSTOM_CSS = """
 
     /* Sidebar - white */
     section[data-testid="stSidebar"] {
-        background-color: #ffffff;
+        background-color: #dce8dc;
     }
     section[data-testid="stSidebar"] .stMarkdown h1,
     section[data-testid="stSidebar"] .stMarkdown h2,
