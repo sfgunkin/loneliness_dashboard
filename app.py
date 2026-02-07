@@ -68,26 +68,22 @@ CUSTOM_CSS = """
     .stApp, .stApp > header {
         background-color: #dce8dc;
     }
-    /* Use Streamlit header bar for sticky dashboard title */
+    /* Streamlit header bar - becomes our sticky title bar */
     [data-testid="stHeader"] {
         background: linear-gradient(135deg, #3a7d5c 0%, #2d5a4a 100%);
-        height: auto;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
     .block-container {
         padding-top: 0.5rem !important;
     }
 
-    /* Sticky header in top bar */
+    /* Non-sticky header rendered inline */
     .main-header {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        z-index: 999;
         background: linear-gradient(135deg, #3a7d5c 0%, #2d5a4a 100%);
         padding: 0.5rem 1.8rem;
+        border-radius: 0 0 10px 10px;
+        margin: -1rem -1rem 0.6rem -1rem;
         color: white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
     .main-header h1 {
         color: white !important;
@@ -98,10 +94,6 @@ CUSTOM_CSS = """
         color: rgba(255,255,255,0.9);
         font-size: 0.8rem;
         margin-bottom: 0;
-    }
-    /* Spacer to push content below the fixed header */
-    .header-spacer {
-        height: 3.5rem;
     }
 
     /* Compact intro text */
@@ -229,6 +221,62 @@ LAYOUT_DEFAULTS = {
     'font_size_tick': 12,
     'grid_color': 'lightgray',
 }
+
+# Country name to ISO 3166-1 alpha-2 code mapping for flag emojis
+COUNTRY_ISO = {
+    'Afghanistan': 'AF', 'Albania': 'AL', 'Algeria': 'DZ', 'Angola': 'AO',
+    'Argentina': 'AR', 'Armenia': 'AM', 'Australia': 'AU', 'Austria': 'AT',
+    'Azerbaijan': 'AZ', 'Bahrain': 'BH', 'Bangladesh': 'BD', 'Belarus': 'BY',
+    'Belgium': 'BE', 'Benin': 'BJ', 'Bhutan': 'BT', 'Bolivia (Plurinational State of)': 'BO',
+    'Bosnia and Herzegovina': 'BA', 'Botswana': 'BW', 'Brazil': 'BR', 'Brunei Darussalam': 'BN',
+    'Bulgaria': 'BG', 'Burkina Faso': 'BF', 'Burundi': 'BI', 'Cabo Verde': 'CV',
+    'Cambodia': 'KH', 'Cameroon': 'CM', 'Canada': 'CA', 'Central African Republic': 'CF',
+    'Chad': 'TD', 'Chile': 'CL', 'China': 'CN', 'Colombia': 'CO', 'Comoros': 'KM',
+    'Congo': 'CG', 'Costa Rica': 'CR', 'Croatia': 'HR', 'Cuba': 'CU', 'Cyprus': 'CY',
+    'Czechia': 'CZ', "Côte d'Ivoire": 'CI', 'Democratic Republic of the Congo': 'CD',
+    'Denmark': 'DK', 'Djibouti': 'DJ', 'Dominican Republic': 'DO', 'Ecuador': 'EC',
+    'Egypt': 'EG', 'El Salvador': 'SV', 'Eritrea': 'ER', 'Estonia': 'EE',
+    'Eswatini': 'SZ', 'Ethiopia': 'ET', 'Fiji': 'FJ', 'Finland': 'FI', 'France': 'FR',
+    'Gabon': 'GA', 'Gambia': 'GM', 'Georgia': 'GE', 'Germany': 'DE', 'Ghana': 'GH',
+    'Greece': 'GR', 'Guatemala': 'GT', 'Guinea': 'GN', 'Guinea-Bissau': 'GW',
+    'Guyana': 'GY', 'Haiti': 'HT', 'Honduras': 'HN', 'Hungary': 'HU',
+    'Iceland': 'IS', 'India': 'IN', 'Indonesia': 'ID', 'Iran (Islamic Republic of)': 'IR',
+    'Iraq': 'IQ', 'Ireland': 'IE', 'Israel': 'IL', 'Italy': 'IT', 'Jamaica': 'JM',
+    'Japan': 'JP', 'Jordan': 'JO', 'Kazakhstan': 'KZ', 'Kenya': 'KE',
+    'Kuwait': 'KW', 'Kyrgyzstan': 'KG', "Lao People's Democratic Republic": 'LA',
+    'Latvia': 'LV', 'Lebanon': 'LB', 'Lesotho': 'LS', 'Liberia': 'LR', 'Libya': 'LY',
+    'Lithuania': 'LT', 'Luxembourg': 'LU', 'Madagascar': 'MG', 'Malawi': 'MW',
+    'Malaysia': 'MY', 'Maldives': 'MV', 'Mali': 'ML', 'Malta': 'MT', 'Mauritania': 'MR',
+    'Mauritius': 'MU', 'Mexico': 'MX', 'Mongolia': 'MN', 'Montenegro': 'ME',
+    'Morocco': 'MA', 'Mozambique': 'MZ', 'Myanmar': 'MM', 'Namibia': 'NA',
+    'Nepal': 'NP', 'Netherlands': 'NL', 'New Zealand': 'NZ', 'Nicaragua': 'NI',
+    'Niger': 'NE', 'Nigeria': 'NG', 'North Macedonia': 'MK', 'Norway': 'NO',
+    'Oman': 'OM', 'Pakistan': 'PK', 'Panama': 'PA', 'Papua New Guinea': 'PG',
+    'Paraguay': 'PY', 'Peru': 'PE', 'Philippines': 'PH', 'Poland': 'PL',
+    'Portugal': 'PT', 'Qatar': 'QA', 'Republic of Korea': 'KR',
+    "Dem. People's Republic of Korea": 'KP', 'Republic of Moldova': 'MD',
+    'Romania': 'RO', 'Russian Federation': 'RU', 'Rwanda': 'RW',
+    'Saudi Arabia': 'SA', 'Senegal': 'SN', 'Serbia': 'RS', 'Sierra Leone': 'SL',
+    'Singapore': 'SG', 'Slovakia': 'SK', 'Slovenia': 'SI', 'Somalia': 'SO',
+    'South Africa': 'ZA', 'South Sudan': 'SS', 'Spain': 'ES', 'Sri Lanka': 'LK',
+    'State of Palestine': 'PS', 'Sudan': 'SD', 'Suriname': 'SR', 'Sweden': 'SE',
+    'Switzerland': 'CH', 'Syrian Arab Republic': 'SY', 'Tajikistan': 'TJ',
+    'Thailand': 'TH', 'Timor-Leste': 'TL', 'Togo': 'TG', 'Trinidad and Tobago': 'TT',
+    'Tunisia': 'TN', 'Türkiye': 'TR', 'Turkmenistan': 'TM', 'Uganda': 'UG',
+    'Ukraine': 'UA', 'United Arab Emirates': 'AE', 'United Kingdom': 'GB',
+    'United Republic of Tanzania': 'TZ', 'United States of America': 'US',
+    'Uruguay': 'UY', 'Uzbekistan': 'UZ', 'Venezuela (Bolivarian Republic of)': 'VE',
+    'Viet Nam': 'VN', 'Yemen': 'YE', 'Zambia': 'ZM', 'Zimbabwe': 'ZW',
+}
+
+
+def get_flag(location: str) -> str:
+    """Get flag emoji for a country name. Returns empty string for regions."""
+    iso = COUNTRY_ISO.get(location)
+    if not iso:
+        return ''
+    return ''.join(chr(0x1F1E6 + ord(c) - ord('A')) for c in iso) + ' '
+
 
 # ============================================================================
 # UTILITY FUNCTIONS
@@ -830,7 +878,6 @@ def main():
         <h1>Loneliness Risk Index Dashboard</h1>
         <p>Demographic loneliness risk visualization based on Lokshin & Foster methodology</p>
     </div>
-    <div class="header-spacer"></div>
     """, unsafe_allow_html=True)
 
     # Introduction with data source link
@@ -946,7 +993,7 @@ def main():
     """, unsafe_allow_html=True)
 
     # Primary country row
-    st.markdown(f'<div class="metrics-primary"><h3>{primary_loc} ({year})</h3></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metrics-primary"><h3>{get_flag(primary_loc)}{primary_loc} ({year})</h3></div>', unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
@@ -970,7 +1017,7 @@ def main():
                   delta=f"{delta_mf:+.3f}" if delta_mf != 0 else None)
 
     # Comparator country row
-    st.markdown(f'<div class="metrics-comparator"><h3>{comparator_loc} ({year})</h3></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metrics-comparator"><h3>{get_flag(comparator_loc)}{comparator_loc} ({year})</h3></div>', unsafe_allow_html=True)
     col5, col6, col7, col8 = st.columns(4)
 
     with col5:
