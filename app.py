@@ -130,6 +130,7 @@ CUSTOM_CSS = f"""
 
     section[data-testid="stSidebar"] {{ background-color: {THEME['bg']}; }}
     section[data-testid="stSidebar"] .stMarkdown strong {{ color: {THEME['accent']}; }}
+    section[data-testid="stSidebar"] [data-baseweb="select"] {{ font-size: 1.15rem; }}
 
     .footer {{
         background-color: {THEME['card']}; padding: 1.5rem; border-radius: 10px;
