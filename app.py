@@ -615,11 +615,13 @@ def render_tab_decomposition(pd_, cd_, ploc, cloc, year, alpha, T):
         decreasing=dict(marker=dict(color=COLOR['secondary'])),
         totals=dict(marker=dict(color=COLOR['purple'])),
         text=[f"{v:+.4f}" for v in values] + [f"{decomp['delta_LBI']:+.4f}"],
-        textposition="outside"))
+        textposition="outside", cliponaxis=False))
     fig1.update_layout(
         title=f"Oaxaca\u2013Kitagawa Decomposition of \u0394LBI ({ploc} \u2212 {cloc})",
         yaxis=_yaxis("Contribution to \u0394LBI"),
-        showlegend=False, height=420, plot_bgcolor='white')
+        showlegend=False, height=420, plot_bgcolor='white',
+        margin=dict(t=60, b=40),
+        yaxis_automargin=True, uniformtext_minsize=10)
     st.plotly_chart(fig1, use_container_width=True)
 
     # --- Age-specific decomposition of ΔLII --------------------------------
