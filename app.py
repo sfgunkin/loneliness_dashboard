@@ -431,7 +431,7 @@ def plot_components(data, location, year, alpha, color=COLOR['primary']):
     return fig
 
 
-def plot_pyramid(data, location, year):
+def plot_pyramid(data, location, year, T=60):
     fig = go.Figure()
     mx = max(np.max(data['pop_male']), np.max(data['pop_female']))
     fig.add_trace(go.Bar(y=data['ages'], x=-data['pop_male'], orientation='h',
@@ -442,7 +442,7 @@ def plot_pyramid(data, location, year):
         name='Females', marker_color=COLOR['female'],
         hovertemplate='Age %{y}<br>Females: %{x:.1f}k<extra></extra>'))
     fig.update_layout(
-        title=f'Elderly Population Pyramid: {location} ({year})',
+        title=f'Population {T}+: {location}, {year}',
         xaxis=dict(title='Population (thousands)', range=[-mx * 1.1, mx * 1.1],
             tickvals=[-mx, -mx/2, 0, mx/2, mx],
             ticktext=[f'{mx:.0f}', f'{mx/2:.0f}', '0', f'{mx/2:.0f}', f'{mx:.0f}']),
@@ -654,12 +654,12 @@ def render_tab_decomposition(pd_, cd_, ploc, cloc, year, T):
     st.plotly_chart(fig2, use_container_width=True)
 
 
-def render_tab_pyramids(pd_, cd_, ploc, cloc, year):
+def render_tab_pyramids(pd_, cd_, ploc, cloc, year, T):
     c1, c2 = st.columns(2)
     with c1:
-        st.plotly_chart(plot_pyramid(pd_, ploc, year), use_container_width=True)
+        st.plotly_chart(plot_pyramid(pd_, ploc, year, T), use_container_width=True)
     with c2:
-        st.plotly_chart(plot_pyramid(cd_, cloc, year), use_container_width=True)
+        st.plotly_chart(plot_pyramid(cd_, cloc, year, T), use_container_width=True)
 
 
 def render_tab_map(df_hash, year, T, alpha, c_max, df):
@@ -762,7 +762,7 @@ def main():
     with tab_comp:
         render_tab_components(pd_, cd_, ploc, cloc, year, alpha)
     with tab_pyr:
-        render_tab_pyramids(pd_, cd_, ploc, cloc, year)
+        render_tab_pyramids(pd_, cd_, ploc, cloc, year, T)
     with tab_map:
         render_tab_map(df_hash, year, T, alpha, c_max, df)
 
