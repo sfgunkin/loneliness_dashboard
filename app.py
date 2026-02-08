@@ -80,14 +80,11 @@ def hex_to_rgba(hex_color: str, alpha: float) -> str:
 # CSS
 # ============================================================================
 
-_pri_tint = hex_to_rgba(COLOR['primary'], 0.08)
-_sec_tint = hex_to_rgba(COLOR['secondary'], 0.10)
 _pri_fill = hex_to_rgba(COLOR['primary'], 0.10)
 
 CUSTOM_CSS = f"""
 <style>
     .stApp {{ background-color: {THEME['bg']}; }}
-    [data-testid="stHeader"] {{ display: none; }}
     .block-container {{ padding-top: 0.5rem !important; }}
 
     .main-header {{
@@ -97,9 +94,6 @@ CUSTOM_CSS = f"""
     }}
     .main-header h1 {{ color: white !important; margin-bottom: 0.1rem; font-size: 1.3rem; }}
     .main-header p {{ color: rgba(255,255,255,0.9); font-size: 0.8rem; margin-bottom: 0; }}
-
-    .intro-text {{ font-size: 0.85rem; margin-bottom: 0.3rem; color: {THEME['text']}; }}
-    .intro-text a {{ color: {THEME['accent']}; }}
 
     div[data-testid="stMetric"] {{
         background-color: {THEME['card']}; border: 1px solid {THEME['border_dark']};
@@ -112,16 +106,6 @@ CUSTOM_CSS = f"""
     div[data-testid="stMetric"] [data-testid="stMetricValue"] {{
         font-size: 1.5rem; color: {THEME['text']};
     }}
-
-    .metrics-primary {{
-        background-color: {_pri_tint}; border-left: 3px solid {COLOR['primary']};
-        padding: 0.25rem 0.8rem; border-radius: 0 6px 6px 0; margin-bottom: 0.2rem;
-    }}
-    .metrics-comparator {{
-        background-color: {_sec_tint}; border-left: 3px solid {COLOR['secondary']};
-        padding: 0.25rem 0.8rem; border-radius: 0 6px 6px 0; margin-bottom: 0.2rem;
-    }}
-    .metrics-primary h3, .metrics-comparator h3 {{ margin: 0; font-size: 1.25rem; }}
 
     .main .stMarkdown h2 {{ font-size: 1.2rem; margin-top: 0.3rem; margin-bottom: 0.3rem; }}
 
@@ -410,33 +394,40 @@ def _plot_age_curve(pdata, cdata, ploc, cloc, year, burden=False):
     return fig
 
 
-def plot_time_series(pts, cts, metric='LBI', T=60):
+def plot_time_series(pts, cts, metric='LBI', T=60, show_legend=True):
     fig = go.Figure()
     ploc = pts['Location'].iloc[0] if not pts.empty else 'Location 1'
     cloc = cts['Location'].iloc[0] if not cts.empty else 'Location 2'
     for ts, loc, clr in [(pts, ploc, COLOR['primary']), (cts, cloc, COLOR['secondary'])]:
         fig.add_trace(go.Scatter(
             x=ts['Year'], y=ts[metric], mode='lines+markers', name=loc,
-            line=dict(color=clr, width=2), marker=dict(size=4)))
+            line=dict(color=clr, width=2), marker=dict(size=4),
+            showlegend=show_legend))
     fig.add_vline(x=2024, line_dash="dash", line_color="gray",
                   annotation_text="2024", annotation_position="top right")
-    fig.update_layout(title=metric_label(metric, T) + ' Over Time',
-                      xaxis_title='Year', yaxis=_yaxis(metric_label(metric, T)),
-                      legend=_legend('top-left'), hovermode='x unified')
+    layout = dict(title=metric_label(metric, T),
+                  xaxis_title='Year', yaxis=_yaxis(metric_label(metric, T)),
+                  hovermode='x unified')
+    if show_legend:
+        layout['legend'] = dict(orientation='h', yanchor='top', y=-0.18,
+                                xanchor='center', x=0.5,
+                                bgcolor='rgba(255,255,255,0.8)',
+                                bordercolor='gray', borderwidth=1)
+    fig.update_layout(**layout)
     return fig
 
 
-def plot_components(data, location, year, alpha):
+def plot_components(data, location, year, alpha, color=COLOR['primary']):
     fig = make_subplots(rows=1, cols=3, subplot_titles=(
         'Gender Ratio g_c', f'Vulnerability V_c(\u03b1={alpha})', 'Cohort Share s_c'))
     fig.add_trace(go.Bar(x=data['ages'], y=data['g_c'], name='g_c',
-        marker_color=np.where(data['g_c'] >= 0, COLOR['positive'], COLOR['negative'])),
+        marker_color=color),
         row=1, col=1)
     fig.add_trace(go.Scatter(x=data['ages'], y=data['V_c'], mode='lines+markers',
-        name='V_c(\u03b1)', line=dict(color=COLOR['purple'], width=2)),
+        name='V_c(\u03b1)', line=dict(color=color, width=2)),
         row=1, col=2)
     fig.add_trace(go.Bar(x=data['ages'], y=data['s_c'], name='s_c',
-        marker_color=COLOR['male']), row=1, col=3)
+        marker_color=color), row=1, col=3)
     fig.update_layout(title=f'Components of Loneliness Index: {location} ({year})',
                       showlegend=False, height=350)
     ylabels = ['Gender Ratio g(c)', 'Vulnerability V(c)', 'Cohort Share s(c)']
@@ -495,86 +486,103 @@ def plot_world_map(global_lbi, year, metric='LBI', T=60):
 # ============================================================================
 
 def render_sidebar(locations, years):
-    sidebar_label("Locations")
+    sidebar_label("Countries")
     ploc = st.sidebar.selectbox(
-        "Primary", locations,
+        "Country A", locations,
         index=locations.index('Japan') if 'Japan' in locations else 0)
     comp_opts = [l for l in locations if l != ploc]
     cloc = st.sidebar.selectbox(
-        "Comparator", comp_opts,
+        "Country B", comp_opts,
         index=comp_opts.index('Germany') if 'Germany' in comp_opts else 0)
 
-    sidebar_label("Parameters")
-    alpha = st.sidebar.slider("\u03b1 (vulnerability)", 0.5, 2.5, 1.5, 0.1,
-                              help="Controls how vulnerability increases with age. Paper uses \u03b1=1.5")
-    T = st.sidebar.slider("T (elderly threshold)", 55, 80, 60, 1,
-                          help="Age threshold for elderly population")
-    c_max = st.sidebar.slider("c_max (max age)", 85, 100, 98, 1,
-                              help="Maximum age in analysis")
+    with st.sidebar.expander("Advanced Parameters", expanded=False):
+        alpha = st.slider("\u03b1 (vulnerability)", 0.5, 2.5, 1.5, 0.1,
+                          help="Controls how vulnerability increases with age. Paper uses \u03b1=1.5")
+        T = st.slider("T (elderly threshold)", 55, 80, 60, 1,
+                       help="Age threshold for elderly population")
+        c_max = st.slider("c_max (max age)", 85, 100, 98, 1,
+                           help="Maximum age in analysis")
 
     sidebar_label("Time")
     year = st.sidebar.slider("Cross-section year", int(min(years)), int(max(years)), 2023, 1)
     yr_range = st.sidebar.slider("Time series range", int(min(years)), int(max(years)), (1950, 2100), 5)
-
-    with st.sidebar.expander("About", expanded=False):
-        st.markdown(f"Based on Lokshin & Foster's **Loneliness Risk Index**. "
-                    f"Data: [UN WPP 2024]({UN_WPP_URL})")
 
     return ploc, cloc, alpha, T, c_max, year, yr_range
 
 
 def render_metrics(pd_, cd_, ploc, cloc, year, T):
     metrics = [
-        ("Loneliness Intensity Index", pd_['LII'], cd_['LII'], '.3f'),
-        ("Loneliness Burden Index", pd_['LBI'], cd_['LBI'], '.3f'),
-        (f"Share of elderly ({T}+)", pd_['S_T'], cd_['S_T'], '.2%'),
-        (f"M/F ratio ({T}+)", pd_['MF_ratio'], cd_['MF_ratio'], '.3f'),
+        ("LII", 'LII', '.3f'), ("LBI", 'LBI', '.3f'),
+        (f"Elderly ({T}+)", 'S_T', '.2%'), (f"M/F ({T}+)", 'MF_ratio', '.3f'),
     ]
-    for css_cls, clr, loc, show_delta in [
-        ('metrics-primary', COLOR['primary'], ploc, True),
-        ('metrics-comparator', COLOR['secondary'], cloc, False),
-    ]:
-        st.markdown(f'<div class="{css_cls}"><h3>{color_dot(clr)}{loc} ({year})</h3></div>',
-                    unsafe_allow_html=True)
-        for col, (label, pv, cv, fmt) in zip(st.columns(4), metrics):
-            val = pv if show_delta else cv
-            delta = None
-            if show_delta:
-                d = pv - cv
-                if d != 0:
-                    dfmt = '+.3f' if fmt == '.3f' else ('+.2%' if fmt == '.2%' else '+.3f')
-                    delta = f"{d:{dfmt}}"
-            with col:
-                st.metric(label, f"{val:{fmt}}", delta)
+    header = ''.join(f'<th style="padding:0.35rem 1rem; font-weight:600; '
+                     f'color:{THEME["text_muted"]}; font-size:0.85rem;">{m[0]}</th>'
+                     for m in metrics)
+
+    def _row(label, color, vals, fmts, bold=False, color_vals=False):
+        dot = color_dot(color) if color else ''
+        w = 'font-weight:700;' if bold else ''
+        name = (f'<td style="padding:0.35rem 1rem; white-space:nowrap; {w}">'
+                f'{dot}{label}</td>')
+        cells = []
+        for v, f in zip(vals, fmts):
+            vc = ''
+            if color_vals:
+                vc = f'color:#2196F3;' if v > 0 else (f'color:#FF9800;' if v < 0 else '')
+            cells.append(
+                f'<td style="padding:0.35rem 1rem; text-align:right; {w}{vc}">'
+                f'{v:{f}}</td>')
+        return f'<tr>{name}{"".join(cells)}</tr>'
+
+    fmts = [m[2] for m in metrics]
+    dfmts = ['+.3f' if f == '.3f' else '+.2%' for f in fmts]
+    pvals = [pd_[m[1]] for m in metrics]
+    cvals = [cd_[m[1]] for m in metrics]
+    dvals = [p - c for p, c in zip(pvals, cvals)]
+
+    table = f"""
+    <table style="width:100%; border-collapse:collapse; background:{THEME['card']};
+                  border:1px solid {THEME['border_dark']}; border-radius:10px;
+                  box-shadow:0 2px 8px rgba(0,0,0,0.07); margin-bottom:0.5rem;">
+      <thead><tr style="border-bottom:2px solid {THEME['border']};">
+        <th style="padding:0.35rem 1rem; text-align:left; color:{THEME['text_muted']};
+                   font-size:0.85rem;">Country ({year})</th>{header}
+      </tr></thead>
+      <tbody>
+        {_row(ploc, COLOR['primary'], pvals, fmts)}
+        <tr style="border-bottom:1px solid {THEME['border']};">
+          {_row(cloc, COLOR['secondary'], cvals, fmts)[4:-5]}
+        </tr>
+        {_row('\u0394 Difference', None, dvals, dfmts, bold=True, color_vals=True)}
+      </tbody>
+    </table>"""
+    st.markdown(table, unsafe_allow_html=True)
 
 
 def render_tab_time_series(pts, cts, T):
-    st.subheader("Loneliness Indices Over Time")
-    c1, c2 = st.columns(2)
+    c1, c2, c3 = st.columns(3)
     with c1:
-        st.plotly_chart(plot_time_series(pts, cts, 'LII', T), use_container_width=True)
+        st.plotly_chart(plot_time_series(pts, cts, 'LII', T, show_legend=True), use_container_width=True)
     with c2:
-        st.plotly_chart(plot_time_series(pts, cts, 'LBI', T), use_container_width=True)
-    st.plotly_chart(plot_time_series(pts, cts, 'S_T', T), use_container_width=True)
+        st.plotly_chart(plot_time_series(pts, cts, 'LBI', T, show_legend=False), use_container_width=True)
+    with c3:
+        st.plotly_chart(plot_time_series(pts, cts, 'S_T', T, show_legend=False), use_container_width=True)
 
 
 def render_tab_curves(pd_, cd_, ploc, cloc, year):
-    st.subheader(f"Age-Specific Analysis ({year})")
     st.plotly_chart(_plot_age_curve(pd_, cd_, ploc, cloc, year), use_container_width=True)
     st.plotly_chart(_plot_age_curve(pd_, cd_, ploc, cloc, year, burden=True), use_container_width=True)
 
 
 def render_tab_components(pd_, cd_, ploc, cloc, year, alpha):
-    st.subheader("Index Components")
     st.markdown(f"**Formula**: LI_c = |g_c| \u00d7 V_c(\u03b1) \u00d7 s_c, where: "
                 f"g_c = normalized gender gap, V_c(\u03b1) = vulnerability (\u03b1={alpha}), "
                 f"s_c = cohort share")
-    st.plotly_chart(plot_components(pd_, ploc, year, alpha), use_container_width=True)
-    st.plotly_chart(plot_components(cd_, cloc, year, alpha), use_container_width=True)
+    st.plotly_chart(plot_components(pd_, ploc, year, alpha, COLOR['primary']), use_container_width=True)
+    st.plotly_chart(plot_components(cd_, cloc, year, alpha, COLOR['secondary']), use_container_width=True)
 
 
 def render_tab_decomposition(pd_, cd_, ploc, cloc, year, T):
-    st.subheader(f"Oaxaca\u2013Kitagawa Decomposition of \u0394LBI ({year})")
     decomp = decompose_lbi_difference(pd_, cd_)
 
     st.markdown(
@@ -585,20 +593,27 @@ def render_tab_decomposition(pd_, cd_, ploc, cloc, year, T):
     denom = decomp['delta_LBI'] if abs(decomp['delta_LBI']) > 1e-10 else np.nan
     components = [
         ('Population Aging', decomp['population_aging'],
-         'Difference in shares of elderly in total population (\u0394S_T \u00d7 L\u0305II)'),
+         'Elderly share difference'),
         ('Gender Gap', decomp['gender_gap'],
-         'Difference in male/female longevity by age (S\u0305_T \u00d7 \u03a3\u0394|g_c|\u00b7V_c\u00b7s\u0305_c)'),
+         'Male/female longevity difference by age'),
         ('Age Concentration', decomp['age_concentration'],
-         'Where within the elderly the gender gaps occur (S\u0305_T \u00d7 \u03a3|g\u0305_c|\u00b7V_c\u00b7\u0394s_c)'),
+         'Where within the elderly the gender gaps occur'),
     ]
 
     cols = st.columns(3)
     for col, (label, value, desc) in zip(cols, components):
         pct = value / denom * 100 if np.isfinite(denom) else np.nan
+        vc = '#2196F3' if value > 0 else ('#FF9800' if value < 0 else THEME['text'])
+        pct_str = f"{pct:+.1f}% of \u0394LBI" if np.isfinite(pct) else ""
         with col:
-            st.metric(label, f"{value:+.4f}",
-                      f"{pct:+.1f}% of \u0394LBI" if np.isfinite(pct) else None)
-            st.caption(desc)
+            st.markdown(
+                f'<div style="background:{THEME["card"]}; border:1px solid {THEME["border_dark"]}; '
+                f'border-radius:10px; padding:0.5rem 0.7rem; box-shadow:0 3px 10px rgba(0,0,0,0.1);">'
+                f'<div style="color:{THEME["text_muted"]}; font-weight:500; font-size:0.78rem;">{label}</div>'
+                f'<div style="font-size:1.5rem; color:{vc}; font-weight:700;">{value:+.4f}</div>'
+                f'<div style="font-size:0.85rem; color:{vc};">{pct_str}</div>'
+                f'<div style="font-size:0.75rem; color:{THEME["text_muted"]}; margin-top:0.2rem;">{desc}</div>'
+                f'</div>', unsafe_allow_html=True)
 
     # --- Waterfall chart ---------------------------------------------------
     labels = ['Population<br>Aging', 'Gender<br>Gap', 'Age<br>Concentration',
@@ -649,7 +664,6 @@ def render_tab_decomposition(pd_, cd_, ploc, cloc, year, T):
 
 
 def render_tab_pyramids(pd_, cd_, ploc, cloc, year):
-    st.subheader("Elderly Population Structure")
     c1, c2 = st.columns(2)
     with c1:
         st.plotly_chart(plot_pyramid(pd_, ploc, year), use_container_width=True)
@@ -657,35 +671,7 @@ def render_tab_pyramids(pd_, cd_, ploc, cloc, year):
         st.plotly_chart(plot_pyramid(cd_, cloc, year), use_container_width=True)
 
 
-def render_tab_data(pd_, cd_, ploc, cloc, year, pts, cts):
-    st.subheader("Detailed Data")
-    df = pd.DataFrame({
-        'Age': pd_['ages'],
-        **{f'{ploc} - {k}': pd_[v] for k, v in _EXPORT_FIELDS},
-        **{f'{cloc} - {k}': cd_[v] for k, v in _EXPORT_COMP},
-    })
-    st.dataframe(df.style.format({c: '{:.3f}' for c in df.columns if c != 'Age'}),
-                 use_container_width=True)
-
-    st.subheader("\U0001f4e5 Download Results")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.download_button("Download Time Series (CSV)",
-            pd.concat([pts, cts]).to_csv(index=False),
-            f"loneliness_ts_{ploc}_{cloc}.csv", "text/csv")
-    with c2:
-        cross = pd.DataFrame({
-            'Age': pd_['ages'],
-            **{f'{ploc}_{k}': pd_[v] for k, v in _EXPORT_FIELDS},
-            **{f'{cloc}_{k}': cd_[v] for k, v in _EXPORT_COMP},
-        })
-        st.download_button("Download Cross-Section (CSV)",
-            cross.to_csv(index=False),
-            f"loneliness_cross_{ploc}_{cloc}_{year}.csv", "text/csv")
-
-
 def render_tab_map(df_hash, year, T, alpha, c_max, df):
-    st.subheader(f"Global Loneliness Burden Index ({year})")
     glbi = _global_lbi(df_hash, year, T, alpha, c_max, df)
     metric = st.radio("Select metric:", ['LBI', 'LII', 'S_T', 'MF_ratio'],
         format_func=lambda x: metric_label(x, T), horizontal=True)
@@ -699,41 +685,24 @@ def render_tab_map(df_hash, year, T, alpha, c_max, df):
             st.markdown(f"**{label} Countries by {metric_label(metric, T)}**")
             tbl = getattr(countries, fn)(10, metric)[['Location', 'LBI', 'LII', 'S_T', 'MF_ratio']].reset_index(drop=True)
             tbl.index = tbl.index + 1
-            st.dataframe(tbl.style.format(_TABLE_FMT), use_container_width=True)
+            tbl = tbl.copy()
+            tbl['S_T'] = tbl['S_T'] * 100
+            st.dataframe(tbl, column_config={
+                'LBI': st.column_config.NumberColumn(format='%.3f'),
+                'LII': st.column_config.NumberColumn(format='%.3f'),
+                'S_T': st.column_config.NumberColumn(format='%.1f%%'),
+                'MF_ratio': st.column_config.NumberColumn(format='%.3f'),
+            }, use_container_width=True)
 
 
-def render_footer(alpha, T, c_max):
+def render_footer():
     st.markdown("---")
     st.markdown(f"""
     <div class="footer">
-        <h4>About</h4>
         <p><strong>Methodology:</strong> Lokshin, M. and J. Foster. "Loneliness Risk Index."</p>
-        <p><strong>Data Source:</strong>
+        <p><strong>Data:</strong>
             <a href="{UN_WPP_URL}" target="_blank">UN World Population Prospects 2024</a>
-            (<a href="{UN_WPP_DOWNLOAD_URL}" target="_blank">Download Data</a>)</p>
-        <hr style="border-color: #e9ecef; margin: 1rem 0;">
-        <h4>Current Parameters</h4>
-        <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-                <td style="padding: 0.3rem 0;"><strong>Vulnerability (\u03b1)</strong></td>
-                <td style="padding: 0.3rem 0;">{alpha}</td>
-                <td style="padding: 0.3rem 0;"><strong>Elderly threshold (T)</strong></td>
-                <td style="padding: 0.3rem 0;">{T}</td>
-                <td style="padding: 0.3rem 0;"><strong>Max age (c_max)</strong></td>
-                <td style="padding: 0.3rem 0;">{c_max}</td>
-            </tr>
-        </table>
-        <hr style="border-color: #e9ecef; margin: 1rem 0;">
-        <h4>Formulas</h4>
-        <ul style="margin: 0.5rem 0;">
-            <li><strong>LI<sub>c</sub></strong> = |g<sub>c</sub>| \u00d7 V<sub>c</sub>(\u03b1) \u00d7 s<sub>c</sub></li>
-            <li><strong>LII</strong> = \u03a3 LI<sub>c</sub> \u2014 Loneliness Intensity Index</li>
-            <li><strong>LBI</strong> = S<sub>T</sub> \u00d7 LII \u2014 Loneliness Burden Index</li>
-        </ul>
-        <p style="margin-top: 1rem; font-size: 0.85rem; color: #6c757d;">
-            Where: g<sub>c</sub> = normalized gender ratio, V<sub>c</sub> = vulnerability factor,
-            s<sub>c</sub> = cohort share, S<sub>T</sub> = elderly population share
-        </p>
+            (<a href="{UN_WPP_DOWNLOAD_URL}" target="_blank">Download</a>)</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -747,13 +716,9 @@ def main():
     st.markdown("""
     <div class="main-header">
         <h1>Loneliness Risk Index Dashboard</h1>
-        <p>Demographic loneliness risk visualization based on Lokshin & Foster methodology</p>
+        <p>Based on Lokshin & Foster methodology</p>
     </div>
     """, unsafe_allow_html=True)
-    st.markdown(f'<p class="intro-text">Compare <b>loneliness burden</b> across countries using '
-                f'<a href="{UN_WPP_URL}">UN World Population Prospects 2024</a> data.</p>',
-                unsafe_allow_html=True)
-
     df = load_un_data()
     if df is None:
         st.stop()
@@ -776,27 +741,41 @@ def main():
 
     render_metrics(pd_, cd_, ploc, cloc, year, T)
 
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-        "\U0001f4c9 Time Series", "\U0001f4ca Age-Specific Curves", "\U0001f52c Components",
-        "\u2696\ufe0f Decomposition",
-        "\U0001f465 Population Pyramids", "\U0001f4cb Data Table", "\U0001f5fa\ufe0f World Map"])
+    # --- Export in sidebar ---------------------------------------------------
+    with st.sidebar.expander("Export data", expanded=False):
+        cross = pd.DataFrame({
+            'Age': pd_['ages'],
+            **{f'{ploc}_{k}': pd_[v] for k, v in _EXPORT_FIELDS},
+            **{f'{cloc}_{k}': cd_[v] for k, v in _EXPORT_COMP},
+        })
+        st.download_button("Cross-section CSV",
+            cross.to_csv(index=False),
+            f"loneliness_cross_{ploc}_{cloc}_{year}.csv", "text/csv",
+            use_container_width=True)
+        st.download_button("Time series CSV",
+            pd.concat([pts, cts]).to_csv(index=False),
+            f"loneliness_ts_{ploc}_{cloc}.csv", "text/csv",
+            use_container_width=True)
 
-    with tab1:
-        render_tab_time_series(pts, cts, T)
-    with tab2:
+    # --- Tabs --------------------------------------------------------------
+    tab_cur, tab_ts, tab_dec, tab_comp, tab_pyr, tab_map = st.tabs([
+        "Age Curves", "Time Series", "Decomposition",
+        "Components", "Pyramids", "World Map"])
+
+    with tab_cur:
         render_tab_curves(pd_, cd_, ploc, cloc, year)
-    with tab3:
-        render_tab_components(pd_, cd_, ploc, cloc, year, alpha)
-    with tab4:
+    with tab_ts:
+        render_tab_time_series(pts, cts, T)
+    with tab_dec:
         render_tab_decomposition(pd_, cd_, ploc, cloc, year, T)
-    with tab5:
+    with tab_comp:
+        render_tab_components(pd_, cd_, ploc, cloc, year, alpha)
+    with tab_pyr:
         render_tab_pyramids(pd_, cd_, ploc, cloc, year)
-    with tab6:
-        render_tab_data(pd_, cd_, ploc, cloc, year, pts, cts)
-    with tab7:
+    with tab_map:
         render_tab_map(df_hash, year, T, alpha, c_max, df)
 
-    render_footer(alpha, T, c_max)
+    render_footer()
 
 
 if __name__ == "__main__":
