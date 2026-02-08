@@ -85,6 +85,7 @@ _pri_fill = hex_to_rgba(COLOR['primary'], 0.10)
 CUSTOM_CSS = f"""
 <style>
     .stApp {{ background-color: {THEME['bg']}; }}
+    [data-testid="stHeader"] {{ display: none; }}
     .block-container {{ padding-top: 0.5rem !important; }}
 
     .main-header {{
