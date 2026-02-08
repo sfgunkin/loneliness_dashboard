@@ -156,8 +156,8 @@ def filter_elderly(df: pd.DataFrame, T: int, c_max: int) -> pd.DataFrame:
     return df[(df['AgeGrpStart'] >= T) & (df['AgeGrpStart'] <= c_max)].copy()
 
 
-def vulnerability_factor(ages: np.ndarray, T: int, alpha: float) -> np.ndarray:
-    return np.power((ages - T + 1) / (T + 1), alpha)
+def vulnerability_factor(ages: np.ndarray, T: int, alpha: float, c_max: int) -> np.ndarray:
+    return np.power((ages - T + 1) / (c_max - T + 1), alpha)
 
 
 def safe_divide(num: np.ndarray, den: np.ndarray, fill: float = 1.0) -> np.ndarray:
@@ -227,7 +227,7 @@ def calculate_indices(df_cy: pd.DataFrame, T: int, alpha: float,
     S_T = N_T / total_pop if total_pop > 0 else 0
     s_c = (pm + pf) / N_T
     g_c = safe_divide(pf - pm, pf + pm)
-    V_c = vulnerability_factor(ages, T, alpha)
+    V_c = vulnerability_factor(ages, T, alpha, c_max)
     LI_c = np.abs(g_c) * V_c * s_c
     LII = np.sum(LI_c) * 100
 
@@ -295,7 +295,7 @@ def _time_series_vectorized(df_loc: pd.DataFrame, location: str,
         return pd.DataFrame()
 
     ages = np.arange(T, c_max + 1)
-    eld['V_c'] = eld['AgeGrpStart'].map(dict(zip(ages, vulnerability_factor(ages, T, alpha))))
+    eld['V_c'] = eld['AgeGrpStart'].map(dict(zip(ages, vulnerability_factor(ages, T, alpha, c_max))))
 
     pop_total = (eld['PopMale'] + eld['PopFemale']).replace(0, 1)
     eld['g_c'] = (eld['PopFemale'] - eld['PopMale']) / pop_total
@@ -324,13 +324,35 @@ def _time_series_vectorized(df_loc: pd.DataFrame, location: str,
 def _global_lbi(df_hash: int, year: int, T: int, alpha: float,
                 c_max: int, _df: pd.DataFrame) -> pd.DataFrame:
     df_year = _df[_df['Time'] == year]
-    rows = []
-    for loc in df_year['Location'].unique():
-        idx = calculate_indices(df_year[df_year['Location'] == loc], T, alpha, c_max)
-        if idx:
-            rows.append(dict(Location=loc, LII=idx['LII'], LBI=idx['LBI'],
-                             S_T=idx['S_T'], MF_ratio=idx['MF_ratio'], N_T=idx['N_T']))
-    return pd.DataFrame(rows)
+
+    # Total population per location (all ages, for S_T denominator)
+    tot = df_year.groupby('Location')['PopTotal'].sum()
+
+    # Filter to elderly cohorts and compute per-cohort quantities vectorized
+    eld = df_year[(df_year['AgeGrpStart'] >= T) & (df_year['AgeGrpStart'] <= c_max)].copy()
+    if eld.empty:
+        return pd.DataFrame()
+    pm, pf = eld['PopMale'].values, eld['PopFemale'].values
+    pop_c = pm + pf
+    eld['pop_c'] = pop_c
+    eld['V_c'] = vulnerability_factor(eld['AgeGrpStart'].values, T, alpha, c_max)
+    eld['abs_g_c'] = np.abs(safe_divide(pf - pm, pf + pm))
+
+    # N_T per location, then cohort share and LI_c
+    N_T = eld.groupby('Location')['pop_c'].transform('sum')
+    eld['LI_c'] = eld['abs_g_c'] * eld['V_c'] * (pop_c / N_T)
+
+    # Aggregate per location
+    agg = eld.groupby('Location').agg(
+        N_T=('pop_c', 'sum'), PopMale=('PopMale', 'sum'),
+        PopFemale=('PopFemale', 'sum'), LI_sum=('LI_c', 'sum'))
+    agg = agg[agg['N_T'] > 0]
+    agg['S_T'] = agg['N_T'] / tot.reindex(agg.index).replace(0, 1)
+    agg['LII'] = agg['LI_sum'] * 100
+    agg['LBI'] = agg['S_T'] * agg['LII']
+    agg['MF_ratio'] = agg['PopMale'] / agg['PopFemale'].replace(0, 1)
+
+    return agg[['LII', 'LBI', 'S_T', 'MF_ratio', 'N_T']].reset_index()
 
 
 # ============================================================================
