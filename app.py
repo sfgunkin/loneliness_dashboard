@@ -365,16 +365,18 @@ def load_un_data() -> Optional[pd.DataFrame]:
     if os.path.exists(parquet):
         df = pd.read_parquet(parquet)
     else:
-        data_path = r"F:\OneDrive\__Documents\Papers\Loneliness Index\Data"
+        data_path = os.environ.get('LRI_DATA_PATH',
+                                   os.path.join(os.path.dirname(__file__), 'data'))
         files = [os.path.join(data_path, f"WPP2024_Population1JanuaryBySingleAgeSex_Medium_{r}.csv")
                  for r in ("1950-2023", "2024-2100")]
         cols = ['Location', 'Time', 'AgeGrpStart', 'PopMale', 'PopFemale']
         dfs = [pd.read_csv(f, usecols=cols, dtype={'Location': 'category', 'Time': 'int16',
-               'AgeGrpStart': 'int8', 'PopMale': 'float32', 'PopFemale': 'float32'})
+               'AgeGrpStart': 'int16', 'PopMale': 'float32', 'PopFemale': 'float32'})
                for f in files if os.path.exists(f)]
         if not dfs:
             return None
         df = pd.concat(dfs, ignore_index=True).dropna(subset=cols)
+    df['AgeGrpStart'] = df['AgeGrpStart'].astype('int16')
     df['PopTotal'] = df['PopMale'] + df['PopFemale']
     return df
 
@@ -393,7 +395,7 @@ def _plot_age_curve(pdata, cdata, ploc, cloc, year, burden=False):
     """Age-specific LI(c) or LB(c) = S_T * LI(c) curves."""
     fig = go.Figure()
     ages = pdata['ages']
-    xlabels = [f'{a} ({year - int(a)})' for a in ages]
+    xlabels = [f'{a} ({year - a})' for a in ages]
     if burden:
         pd_ = dict(ages=xlabels, y=pdata['S_T'] * pdata['LI_c'])
         cd_ = dict(ages=xlabels, y=cdata['S_T'] * cdata['LI_c'])
@@ -525,6 +527,9 @@ def render_sidebar(locations, years):
                        help="Age threshold for elderly population")
         c_max = st.slider("c_max (max age)", 85, 100, 98, 1,
                            help="Maximum age in analysis")
+        if T >= c_max:
+            st.error("T must be less than c_max")
+            st.stop()
 
     sidebar_label("Time")
     year = st.sidebar.slider("Cross-section year", int(min(years)), int(max(years)), 2023, 1)

@@ -21,10 +21,11 @@ Interactive dashboard for calculating and visualizing the Loneliness Risk Index 
 pip install -r requirements.txt
 ```
 
-3. (Optional) Download UN World Population Prospects data:
-   - Visit: https://population.un.org/wpp/Download/Standard/CSV/
-   - Download "Population by Age and Sex" data
-   - Save as `data/WPP_Population.csv`
+3. Place UN World Population Prospects data in the dashboard directory:
+   - The app expects `wpp2024_population.parquet` in the same folder as `app.py`
+   - Alternatively, set the `LRI_DATA_PATH` environment variable to a directory containing
+     `WPP2024_Population1JanuaryBySingleAgeSex_Medium_1950-2023.csv` and
+     `WPP2024_Population1JanuaryBySingleAgeSex_Medium_2024-2100.csv`
 
 ## Usage
 
@@ -38,24 +39,13 @@ streamlit run app.py
 
 The dashboard will open in your default browser at `http://localhost:8501`
 
-## Using Real UN Data
-
-To use actual UN World Population Prospects data instead of sample data:
-
-1. Go to https://population.un.org/wpp/Download/Standard/CSV/
-2. Download the population by single age CSV file
-3. Process it to have columns: `Location`, `Time`, `AgeStart`, `PopMale`, `PopFemale`
-4. Save as `data/WPP_Population.csv`
-
-Alternatively, create a script to fetch data from the UN Population API.
-
 ## Parameters
 
 | Parameter | Description | Default | Range |
 |-----------|-------------|---------|-------|
-| α (alpha) | Vulnerability parameter - controls how vulnerability increases with age | 1.5 | 0.0 - 3.0 |
-| T | Elderly threshold age | 60 | 55 - 70 |
-| c_max | Maximum age in analysis | 100 | 85 - 100 |
+| α (alpha) | Vulnerability parameter — controls how vulnerability increases with age | 1.5 | 0.5 – 2.5 |
+| T | Elderly threshold age | 60 | 55 – 80 |
+| c_max | Maximum age in analysis | 98 | 85 – 100 |
 
 ## Formulas
 
@@ -70,10 +60,10 @@ LBI = S_T × LII
 ```
 
 Where:
-- `g_c = (F_c - M_c)/(F_c + M_c)` - normalized gender gap
-- `V_c(α) = ((c-T+1)/(T+1))^α` - vulnerability factor
-- `s_c` - cohort share in elderly population
-- `S_T` - share of elderly in total population
+- `g_c = (F_c - M_c)/(F_c + M_c)` — normalized gender gap
+- `V_c(α) = ((c - T + 1)/(c_max - T + 1))^α` — vulnerability factor
+- `s_c` — cohort share in elderly population
+- `S_T` — share of elderly in total population
 
 ## Reference
 
