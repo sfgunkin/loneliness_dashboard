@@ -6,7 +6,7 @@ Uses UN World Population Prospects 2024 data.
 Run with: streamlit run app.py
 """
 
-from typing import Any, Dict, Optional
+from typing import Optional
 
 import streamlit as st
 import pandas as pd
@@ -45,22 +45,19 @@ COLOR = {
     'secondary': '#d4a843',
     'male': '#3498db',
     'female': '#e91e63',
-    'positive': '#2ecc71',
-    'negative': '#e74c3c',
     'purple': '#9b59b6',
+    'delta_pos': '#2196F3',
+    'delta_neg': '#FF9800',
 }
 
 UN_WPP_URL = "https://population.un.org/wpp/"
 UN_WPP_DOWNLOAD_URL = "https://population.un.org/wpp/Download/Standard/CSV/"
 
 # Fields exported in cross-section download
-_EXPORT_FIELDS = [('PopMale', 'pop_male'), ('PopFemale', 'pop_female'),
-                  ('g_c', 'g_c'), ('V_c', 'V_c'), ('s_c', 's_c'), ('LI_c', 'LI_c')]
-_EXPORT_COMP = _EXPORT_FIELDS[:2] + _EXPORT_FIELDS[2:3] + _EXPORT_FIELDS[5:6]  # no V_c, s_c
-
-# Format strings for metric display
-_METRIC_FMT = {'LBI': '.3f', 'LII': '.3f', 'S_T': '.2%', 'MF_ratio': '.3f'}
-_TABLE_FMT = {k: '{:' + v + '}' for k, v in _METRIC_FMT.items()}
+_EXPORT_ALL = [('PopMale', 'pop_male'), ('PopFemale', 'pop_female'),
+               ('g_c', 'g_c'), ('V_c', 'V_c'), ('s_c', 's_c'), ('LI_c', 'LI_c')]
+_EXPORT_BASIC = [('PopMale', 'pop_male'), ('PopFemale', 'pop_female'),
+                 ('g_c', 'g_c'), ('LI_c', 'LI_c')]
 
 
 def metric_label(key: str, T: int = 60) -> str:
@@ -95,18 +92,6 @@ CUSTOM_CSS = f"""
     }}
     .main-header h1 {{ color: white !important; margin-bottom: 0.1rem; font-size: 1.3rem; }}
     .main-header p {{ color: rgba(255,255,255,0.9); font-size: 0.8rem; margin-bottom: 0; }}
-
-    div[data-testid="stMetric"] {{
-        background-color: {THEME['card']}; border: 1px solid {THEME['border_dark']};
-        border-radius: 10px; padding: 0.5rem 0.7rem;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-    }}
-    div[data-testid="stMetric"] label {{
-        color: {THEME['text_muted']}; font-weight: 500; font-size: 0.78rem;
-    }}
-    div[data-testid="stMetric"] [data-testid="stMetricValue"] {{
-        font-size: 1.5rem; color: {THEME['text']};
-    }}
 
     .main .stMarkdown h2 {{ font-size: 1.2rem; margin-top: 0.3rem; margin-bottom: 0.3rem; }}
 
@@ -145,6 +130,14 @@ CUSTOM_CSS = f"""
 # ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
+
+def _delta_color(value: float) -> str:
+    if value > 0:
+        return COLOR['delta_pos']
+    elif value < 0:
+        return COLOR['delta_neg']
+    return THEME['text']
+
 
 def color_dot(color: str) -> str:
     return (f'<span style="display:inline-block; width:10px; height:10px; '
@@ -217,7 +210,7 @@ def _add_pair(fig, primary, comparator, ploc, cloc, xk, yk,
 # ============================================================================
 
 def calculate_indices(df_cy: pd.DataFrame, T: int, alpha: float,
-                      c_max: int) -> Optional[Dict[str, Any]]:
+                      c_max: int) -> Optional[dict]:
     """LI_c = |g_c| * V_c * s_c;  LII = sum(LI_c)*100;  LBI = S_T * LII"""
     eld = filter_elderly(df_cy, T, c_max)
     if eld.empty:
@@ -520,20 +513,18 @@ def render_metrics(pd_, cd_, ploc, cloc, year, T):
                      f'color:{THEME["text_muted"]}; font-size:0.85rem;">{m[0]}</th>'
                      for m in metrics)
 
-    def _row(label, color, vals, fmts, bold=False, color_vals=False):
+    def _row(label, color, vals, fmts, bold=False, color_vals=False, tr_style=''):
         dot = color_dot(color) if color else ''
         w = 'font-weight:700;' if bold else ''
         name = (f'<td style="padding:0.35rem 1rem; white-space:nowrap; {w}">'
                 f'{dot}{label}</td>')
         cells = []
         for v, f in zip(vals, fmts):
-            vc = ''
-            if color_vals:
-                vc = f'color:#2196F3;' if v > 0 else (f'color:#FF9800;' if v < 0 else '')
+            vc = f'color:{_delta_color(v)};' if color_vals else ''
             cells.append(
                 f'<td style="padding:0.35rem 1rem; text-align:right; {w}{vc}">'
                 f'{v:{f}}</td>')
-        return f'<tr>{name}{"".join(cells)}</tr>'
+        return f'<tr style="{tr_style}">{name}{"".join(cells)}</tr>'
 
     fmts = [m[2] for m in metrics]
     dfmts = ['+.3f' if f == '.3f' else '+.2%' for f in fmts]
@@ -541,6 +532,7 @@ def render_metrics(pd_, cd_, ploc, cloc, year, T):
     cvals = [cd_[m[1]] for m in metrics]
     dvals = [p - c for p, c in zip(pvals, cvals)]
 
+    border_row = f'border-bottom:1px solid {THEME["border"]};'
     table = f"""
     <table style="width:100%; border-collapse:collapse; background:{THEME['card']};
                   border:1px solid {THEME['border_dark']}; border-radius:10px;
@@ -551,9 +543,7 @@ def render_metrics(pd_, cd_, ploc, cloc, year, T):
       </tr></thead>
       <tbody>
         {_row(ploc, COLOR['primary'], pvals, fmts)}
-        <tr style="border-bottom:1px solid {THEME['border']};">
-          {_row(cloc, COLOR['secondary'], cvals, fmts)[4:-5]}
-        </tr>
+        {_row(cloc, COLOR['secondary'], cvals, fmts, tr_style=border_row)}
         {_row('\u0394 Difference', None, dvals, dfmts, bold=True, color_vals=True)}
       </tbody>
     </table>"""
@@ -604,7 +594,7 @@ def render_tab_decomposition(pd_, cd_, ploc, cloc, year, T):
     cols = st.columns(3)
     for col, (label, value, desc) in zip(cols, components):
         pct = value / denom * 100 if np.isfinite(denom) else np.nan
-        vc = '#2196F3' if value > 0 else ('#FF9800' if value < 0 else THEME['text'])
+        vc = _delta_color(value)
         pct_str = f"{pct:+.1f}% of \u0394LBI" if np.isfinite(pct) else ""
         with col:
             st.markdown(
@@ -746,8 +736,8 @@ def main():
     with st.sidebar.expander("Export data", expanded=False):
         cross = pd.DataFrame({
             'Age': pd_['ages'],
-            **{f'{ploc}_{k}': pd_[v] for k, v in _EXPORT_FIELDS},
-            **{f'{cloc}_{k}': cd_[v] for k, v in _EXPORT_COMP},
+            **{f'{ploc}_{k}': pd_[v] for k, v in _EXPORT_ALL},
+            **{f'{cloc}_{k}': cd_[v] for k, v in _EXPORT_BASIC},
         })
         st.download_button("Cross-section CSV",
             cross.to_csv(index=False),
