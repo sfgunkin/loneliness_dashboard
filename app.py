@@ -566,14 +566,14 @@ def render_tab_curves(pd_, cd_, ploc, cloc, year):
 
 def render_tab_components(pd_, cd_, ploc, cloc, year, alpha):
     st.subheader("Index Components")
-    st.markdown(f"**Formula**: LI_c = |g_c| \u00d7 V_c(\u03b1), where: "
+    st.markdown(f"**Formula**: LI_c = |g_c| \u00d7 V_c(\u03b1) \u00d7 s_c, where: "
                 f"g_c = normalized gender gap, V_c(\u03b1) = vulnerability (\u03b1={alpha}), "
                 f"s_c = cohort share")
     st.plotly_chart(plot_components(pd_, ploc, year, alpha), use_container_width=True)
     st.plotly_chart(plot_components(cd_, cloc, year, alpha), use_container_width=True)
 
 
-def render_tab_decomposition(pd_, cd_, ploc, cloc, year, alpha, T):
+def render_tab_decomposition(pd_, cd_, ploc, cloc, year, T):
     st.subheader(f"Oaxaca\u2013Kitagawa Decomposition of \u0394LBI ({year})")
     decomp = decompose_lbi_difference(pd_, cd_)
 
@@ -582,7 +582,7 @@ def render_tab_decomposition(pd_, cd_, ploc, cloc, year, alpha, T):
         f"{pd_['LBI']:.4f} \u2212 {cd_['LBI']:.4f} = **{decomp['delta_LBI']:.4f}**")
 
     # --- Summary table (paper Table 1 style) -------------------------------
-    denom = decomp['delta_LBI'] if decomp['delta_LBI'] != 0 else np.nan
+    denom = decomp['delta_LBI'] if abs(decomp['delta_LBI']) > 1e-10 else np.nan
     components = [
         ('Population Aging', decomp['population_aging'],
          'Difference in shares of elderly in total population (\u0394S_T \u00d7 L\u0305II)'),
@@ -620,8 +620,7 @@ def render_tab_decomposition(pd_, cd_, ploc, cloc, year, alpha, T):
         title=f"Oaxaca\u2013Kitagawa Decomposition of \u0394LBI ({ploc} \u2212 {cloc})",
         yaxis=_yaxis("Contribution to \u0394LBI"),
         showlegend=False, height=420, plot_bgcolor='white',
-        margin=dict(t=60, b=40),
-        yaxis_automargin=True, uniformtext_minsize=10)
+        margin=dict(t=60, b=40))
     st.plotly_chart(fig1, use_container_width=True)
 
     # --- Age-specific decomposition of ΔLII --------------------------------
@@ -788,7 +787,7 @@ def main():
     with tab3:
         render_tab_components(pd_, cd_, ploc, cloc, year, alpha)
     with tab4:
-        render_tab_decomposition(pd_, cd_, ploc, cloc, year, alpha, T)
+        render_tab_decomposition(pd_, cd_, ploc, cloc, year, T)
     with tab5:
         render_tab_pyramids(pd_, cd_, ploc, cloc, year)
     with tab6:
