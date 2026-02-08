@@ -259,6 +259,57 @@ def calculate_indices(df_cy: pd.DataFrame, T: int, alpha: float,
                 MF_ratio=np.sum(pm) / np.sum(pf) if np.sum(pf) > 0 else 0)
 
 
+def decompose_lbi_difference(pd_: dict, cd_: dict) -> dict:
+    """Oaxaca-Kitagawa decomposition of ΔLBI (equations 4-6 in the paper).
+
+    Three components:
+      Population aging  = ΔS_T × L̄II
+      Gender gap        = S̄_T × Σ_c [Δ|g_c| × V_c × s̄_c] × 100
+      Age concentration = S̄_T × Σ_c [|ḡ_c| × V_c × Δs_c] × 100
+    """
+    S_T_A, S_T_B = pd_['S_T'], cd_['S_T']
+    LII_A, LII_B = pd_['LII'], cd_['LII']
+    delta_LBI = pd_['LBI'] - cd_['LBI']
+
+    S_T_bar = (S_T_A + S_T_B) / 2
+    LII_bar = (LII_A + LII_B) / 2
+
+    # Eq (4): first term — population aging effect
+    population_aging = (S_T_A - S_T_B) * LII_bar
+
+    # Align age arrays
+    common_ages = np.intersect1d(pd_['ages'], cd_['ages'])
+    idx_A = {a: i for i, a in enumerate(pd_['ages'])}
+    idx_B = {a: i for i, a in enumerate(cd_['ages'])}
+
+    g_A = np.array([np.abs(pd_['g_c'][idx_A[a]]) for a in common_ages])
+    g_B = np.array([np.abs(cd_['g_c'][idx_B[a]]) for a in common_ages])
+    V_c = np.array([pd_['V_c'][idx_A[a]] for a in common_ages])
+    s_A = np.array([pd_['s_c'][idx_A[a]] for a in common_ages])
+    s_B = np.array([cd_['s_c'][idx_B[a]] for a in common_ages])
+
+    delta_g = g_A - g_B
+    delta_s = s_A - s_B
+    g_bar = (g_A + g_B) / 2
+    s_bar = (s_A + s_B) / 2
+
+    # Eq (5): age-specific contributions to ΔLII
+    gender_gap_by_age = delta_g * V_c * s_bar * 100
+    age_conc_by_age = g_bar * V_c * delta_s * 100
+
+    # Eq (6): three-component decomposition of ΔLBI
+    gender_gap = S_T_bar * np.sum(gender_gap_by_age)
+    age_concentration = S_T_bar * np.sum(age_conc_by_age)
+
+    return dict(delta_LBI=delta_LBI,
+                population_aging=population_aging,
+                gender_gap=gender_gap,
+                age_concentration=age_concentration,
+                ages=common_ages,
+                gender_gap_by_age=gender_gap_by_age,
+                age_conc_by_age=age_conc_by_age)
+
+
 def _time_series_vectorized(df_loc: pd.DataFrame, location: str,
                              T: int, alpha: float, c_max: int) -> pd.DataFrame:
     eld = filter_elderly(df_loc, T, c_max)
@@ -522,6 +573,79 @@ def render_tab_components(pd_, cd_, ploc, cloc, year, alpha):
     st.plotly_chart(plot_components(cd_, cloc, year, alpha), use_container_width=True)
 
 
+def render_tab_decomposition(pd_, cd_, ploc, cloc, year, alpha, T):
+    st.subheader(f"Oaxaca\u2013Kitagawa Decomposition of \u0394LBI ({year})")
+    decomp = decompose_lbi_difference(pd_, cd_)
+
+    st.markdown(
+        f"**\u0394LBI** = LBI({ploc}) \u2212 LBI({cloc}) = "
+        f"{pd_['LBI']:.4f} \u2212 {cd_['LBI']:.4f} = **{decomp['delta_LBI']:.4f}**")
+
+    # --- Summary table (paper Table 1 style) -------------------------------
+    denom = decomp['delta_LBI'] if decomp['delta_LBI'] != 0 else np.nan
+    components = [
+        ('Population Aging', decomp['population_aging'],
+         'Difference in shares of elderly in total population (\u0394S_T \u00d7 L\u0305II)'),
+        ('Gender Gap', decomp['gender_gap'],
+         'Difference in male/female longevity by age (S\u0305_T \u00d7 \u03a3\u0394|g_c|\u00b7V_c\u00b7s\u0305_c)'),
+        ('Age Concentration', decomp['age_concentration'],
+         'Where within the elderly the gender gaps occur (S\u0305_T \u00d7 \u03a3|g\u0305_c|\u00b7V_c\u00b7\u0394s_c)'),
+    ]
+
+    cols = st.columns(3)
+    for col, (label, value, desc) in zip(cols, components):
+        pct = value / denom * 100 if np.isfinite(denom) else np.nan
+        with col:
+            st.metric(label, f"{value:+.4f}",
+                      f"{pct:+.1f}% of \u0394LBI" if np.isfinite(pct) else None)
+            st.caption(desc)
+
+    # --- Waterfall chart ---------------------------------------------------
+    labels = ['Population<br>Aging', 'Gender<br>Gap', 'Age<br>Concentration',
+              'Total \u0394LBI']
+    values = [decomp['population_aging'], decomp['gender_gap'],
+              decomp['age_concentration']]
+
+    fig1 = go.Figure(go.Waterfall(
+        orientation="v",
+        measure=["relative", "relative", "relative", "total"],
+        x=labels, y=values + [0],
+        connector=dict(line=dict(color="rgb(63,63,63)")),
+        increasing=dict(marker=dict(color=COLOR['primary'])),
+        decreasing=dict(marker=dict(color=COLOR['secondary'])),
+        totals=dict(marker=dict(color=COLOR['purple'])),
+        text=[f"{v:+.4f}" for v in values] + [f"{decomp['delta_LBI']:+.4f}"],
+        textposition="outside"))
+    fig1.update_layout(
+        title=f"Oaxaca\u2013Kitagawa Decomposition of \u0394LBI ({ploc} \u2212 {cloc})",
+        yaxis=_yaxis("Contribution to \u0394LBI"),
+        showlegend=False, height=420, plot_bgcolor='white')
+    st.plotly_chart(fig1, use_container_width=True)
+
+    # --- Age-specific decomposition of ΔLII --------------------------------
+    st.markdown("#### Age-Specific Decomposition of \u0394LII")
+    st.markdown(
+        "*The difference in LII decomposes at each age into a gender-gap "
+        "effect and an age-concentration effect (eq. 5).*")
+
+    fig2 = go.Figure()
+    fig2.add_trace(go.Bar(
+        x=decomp['ages'], y=decomp['gender_gap_by_age'],
+        name='Gender Gap Effect', marker_color=COLOR['female'],
+        hovertemplate='Age %{x}<br>Gender gap: %{y:.4f}<extra></extra>'))
+    fig2.add_trace(go.Bar(
+        x=decomp['ages'], y=decomp['age_conc_by_age'],
+        name='Age Concentration Effect', marker_color=COLOR['male'],
+        hovertemplate='Age %{x}<br>Age concentration: %{y:.4f}<extra></extra>'))
+    fig2.update_layout(
+        title=f"Age-Specific Contributions to \u0394LII ({ploc} \u2212 {cloc})",
+        xaxis=_xaxis(decomp['ages']),
+        yaxis=_yaxis("Contribution to \u0394LII"),
+        barmode='relative', legend=_legend(),
+        height=420, plot_bgcolor='white')
+    st.plotly_chart(fig2, use_container_width=True)
+
+
 def render_tab_pyramids(pd_, cd_, ploc, cloc, year):
     st.subheader("Elderly Population Structure")
     c1, c2 = st.columns(2)
@@ -650,8 +774,9 @@ def main():
 
     render_metrics(pd_, cd_, ploc, cloc, year, T)
 
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
         "\U0001f4c9 Time Series", "\U0001f4ca Age-Specific Curves", "\U0001f52c Components",
+        "\u2696\ufe0f Decomposition",
         "\U0001f465 Population Pyramids", "\U0001f4cb Data Table", "\U0001f5fa\ufe0f World Map"])
 
     with tab1:
@@ -661,10 +786,12 @@ def main():
     with tab3:
         render_tab_components(pd_, cd_, ploc, cloc, year, alpha)
     with tab4:
-        render_tab_pyramids(pd_, cd_, ploc, cloc, year)
+        render_tab_decomposition(pd_, cd_, ploc, cloc, year, alpha, T)
     with tab5:
-        render_tab_data(pd_, cd_, ploc, cloc, year, pts, cts)
+        render_tab_pyramids(pd_, cd_, ploc, cloc, year)
     with tab6:
+        render_tab_data(pd_, cd_, ploc, cloc, year, pts, cts)
+    with tab7:
         render_tab_map(df_hash, year, T, alpha, c_max, df)
 
     render_footer(alpha, T, c_max)
