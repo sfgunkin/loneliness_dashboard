@@ -642,8 +642,9 @@ def render_tab_decomposition(pd_, cd_, ploc, cloc, year, T):
         title=f"Age-Specific Contributions to \u0394LII ({ploc} \u2212 {cloc})",
         xaxis=_xaxis(decomp['ages']),
         yaxis=_yaxis("Contribution to \u0394LII"),
-        barmode='relative', legend=_legend(),
-        height=420, plot_bgcolor='white')
+        barmode='relative', height=420, plot_bgcolor='white',
+        legend=dict(orientation='h', yanchor='top', y=-0.18,
+                    xanchor='center', x=0.5))
     st.plotly_chart(fig2, use_container_width=True)
 
 
