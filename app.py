@@ -540,8 +540,8 @@ def render_sidebar(locations, years):
 
 def render_metrics(pd_, cd_, ploc, cloc, year, T):
     metrics = [
-        ("LII", 'LII', '.3f'), ("LBI", 'LBI', '.3f'),
-        (f"Elderly ({T}+)", 'S_T', '.2%'), (f"M/F ({T}+)", 'MF_ratio', '.3f'),
+        ("Loneliness Intensity", 'LII', '.3f'), ("Loneliness Burden", 'LBI', '.3f'),
+        (f"Share of population {T}+", 'S_T', '.2%'), (f"M/F ({T}+)", 'MF_ratio', '.3f'),
     ]
     header = ''.join(f'<th style="padding:0.35rem 1rem; font-weight:600; '
                      f'color:{THEME["text_muted"]}; font-size:0.85rem;">{m[0]}</th>'
