@@ -532,8 +532,9 @@ def render_sidebar(locations, years):
             st.stop()
 
     sidebar_label("Time")
-    year = st.sidebar.slider("Cross-section year", int(min(years)), int(max(years)), 2023, 1)
-    yr_range = st.sidebar.slider("Time series range", int(min(years)), int(max(years)), (1950, 2100), 5)
+    yr_min, yr_max = int(min(years)), min(int(max(years)), 2100)
+    year = st.sidebar.slider("Cross-section year", yr_min, yr_max, 2023, 1)
+    yr_range = st.sidebar.slider("Time series range", yr_min, yr_max, (1950, 2100), 5)
 
     return ploc, cloc, alpha, T, c_max, year, yr_range
 
@@ -567,10 +568,15 @@ def render_metrics(pd_, cd_, ploc, cloc, year, T):
     dvals = [p - c for p, c in zip(pvals, cvals)]
 
     border_row = f'border-bottom:1px solid {THEME["border"]};'
+    n = len(metrics)
+    col_w = '17%'
+    cols_html = '<col style="width:auto;">' + f'<col style="width:{col_w};">' * n
     table = f"""
     <table style="width:100%; border-collapse:collapse; background:{THEME['card']};
                   border:1px solid {THEME['border_dark']}; border-radius:10px;
-                  box-shadow:0 2px 8px rgba(0,0,0,0.07); margin-bottom:0.5rem;">
+                  box-shadow:0 2px 8px rgba(0,0,0,0.07); margin-bottom:0.5rem;
+                  table-layout:fixed;">
+      <colgroup>{cols_html}</colgroup>
       <thead><tr style="border-bottom:2px solid {THEME['border']};">
         <th style="padding:0.35rem 1rem; text-align:left; color:{THEME['text_muted']};
                    font-size:0.85rem;">Country ({year})</th>{header}
