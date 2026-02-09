@@ -399,13 +399,13 @@ def _plot_age_curve(pdata, cdata, ploc, cloc, year, burden=False):
     if burden:
         pd_ = dict(ages=xlabels, y=pdata['S_T'] * pdata['LI_c'])
         cd_ = dict(ages=xlabels, y=cdata['S_T'] * cdata['LI_c'])
-        title = f'Age-Specific Loneliness Burden LB(c) = S_T \u00d7 LI(c), {year}'
-        ylabel = 'LB(c) = S_T \u00d7 |g(c)| \u00d7 V(c) \u00d7 s(c)'
+        title = f'Age-Specific Loneliness Burden, {year}   <i>LB(c) = S_T \u00d7 LI(c)</i>'
+        ylabel = 'Age-Specific Loneliness Burden'
     else:
         pd_ = dict(ages=xlabels, y=pdata['LI_c'])
         cd_ = dict(ages=xlabels, y=cdata['LI_c'])
-        title = f'Age-Specific Loneliness Index LI(c), {year}'
-        ylabel = 'LI(c) = |g(c)| \u00d7 V(c) \u00d7 s(c)'
+        title = f'Age-Specific Loneliness Index, {year}   <i>LI(c) = |g(c)| \u00d7 V(c) \u00d7 s(c)</i>'
+        ylabel = 'Age-Specific Loneliness Index'
     _add_pair(fig, pd_, cd_, ploc, cloc, 'ages', 'y', scale=100.0, fill_primary=burden)
     tick_idx = np.arange(0, len(ages), 5)
     fig.update_layout(
