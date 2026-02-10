@@ -465,19 +465,23 @@ def plot_components(data, location, year, alpha, color=COLOR['primary']):
 def plot_pyramid(data, location, year, T=60):
     fig = go.Figure()
     mx = max(np.max(data['pop_male']), np.max(data['pop_female']))
-    fig.add_trace(go.Bar(y=data['ages'], x=-data['pop_male'], orientation='h',
+    pm, pf = data['pop_male'], data['pop_female']
+    fm_ratio = np.where(pm > 0, pf / pm, 0)
+    fig.add_trace(go.Bar(y=data['ages'], x=-pm, orientation='h',
         name='Males', marker_color=COLOR['male'],
-        hovertemplate='Age %{y}<br>Males: %{customdata:.1f}k<extra></extra>',
-        customdata=data['pop_male']))
-    fig.add_trace(go.Bar(y=data['ages'], x=data['pop_female'], orientation='h',
+        customdata=np.column_stack([pm, fm_ratio]),
+        hovertemplate='Age %{y}<br>Males: %{customdata[0]:.1f}k<br>F/M: %{customdata[1]:.2f}<extra></extra>'))
+    fig.add_trace(go.Bar(y=data['ages'], x=pf, orientation='h',
         name='Females', marker_color=COLOR['female'],
-        hovertemplate='Age %{y}<br>Females: %{x:.1f}k<extra></extra>'))
+        customdata=fm_ratio,
+        hovertemplate='Age %{y}<br>Females: %{x:.1f}k<br>F/M: %{customdata:.2f}<extra></extra>'))
     fig.update_layout(
         title=f'Population {T}+: {location}, {year}',
         xaxis=dict(title='Population (thousands)', range=[-mx * 1.1, mx * 1.1],
             tickvals=[-mx, -mx/2, 0, mx/2, mx],
             ticktext=[f'{mx:.0f}', f'{mx/2:.0f}', '0', f'{mx/2:.0f}', f'{mx:.0f}']),
-        yaxis_title='Age', barmode='overlay', bargap=0.1, height=450)
+        yaxis=dict(title='Age', range=[data['ages'].min() - 0.5, 100.5]),
+        barmode='overlay', bargap=0.1, height=450)
     return fig
 
 
