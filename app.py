@@ -52,11 +52,11 @@ COLOR = {
 
 UN_WPP_URL = "https://population.un.org/wpp/"
 
-# Fields exported in cross-section download
-_EXPORT_ALL = [('PopMale', 'pop_male'), ('PopFemale', 'pop_female'),
-               ('g_c', 'g_c'), ('V_c', 'V_c'), ('s_c', 's_c'), ('LI_c', 'LI_c')]
-_EXPORT_BASIC = [('PopMale', 'pop_male'), ('PopFemale', 'pop_female'),
-                 ('g_c', 'g_c'), ('LI_c', 'LI_c')]
+# Fields exported in cross-section download (column_name → data_key)
+_EXPORT_ALL = {'pop_male': 'PopMale', 'pop_female': 'PopFemale',
+               'g_c': 'g_c', 'V_c': 'V_c', 's_c': 's_c', 'LI_c': 'LI_c'}
+_EXPORT_BASIC = {'pop_male': 'PopMale', 'pop_female': 'PopFemale',
+                 'g_c': 'g_c', 'LI_c': 'LI_c'}
 
 
 def metric_label(key: str, T: int = 60) -> str:
@@ -162,13 +162,11 @@ def safe_divide(num: np.ndarray, den: np.ndarray, fill: float = 1.0) -> np.ndarr
 
 _FONT_AXIS = 14
 _FONT_TICK = 12
+_PLOT_BG = 'white'
 
 
-def _legend(position: str = 'top-right') -> dict:
-    pos = {'top-right': dict(yanchor='top', y=0.99, xanchor='right', x=0.99),
-           'top-left': dict(yanchor='top', y=0.99, xanchor='left', x=0.01)}
-    return dict(**pos.get(position, pos['top-right']),
-                bgcolor='rgba(255,255,255,0.8)', bordercolor='gray', borderwidth=1)
+_LEGEND = dict(yanchor='top', y=0.99, xanchor='right', x=0.99,
+               bgcolor='rgba(255,255,255,0.8)', bordercolor='gray', borderwidth=1)
 
 
 def _xaxis(ages: np.ndarray, title: str = 'Age cohort') -> dict:
@@ -389,15 +387,15 @@ def _plot_age_curve(pdata, cdata, ploc, cloc, year, burden=False):
     ages = pdata['ages']
     xlabels = [f'{a} ({year - a})' for a in ages]
     if burden:
-        pd_ = dict(ages=xlabels, y=pdata['S_T'] * pdata['LI_c'])
-        cd_ = dict(ages=xlabels, y=cdata['S_T'] * cdata['LI_c'])
+        py, cy = pdata['S_T'] * pdata['LI_c'], cdata['S_T'] * cdata['LI_c']
         title = f'Age-Specific Loneliness Burden, {year}   <i>LB(c) = S_T \u00d7 LI(c)</i>'
         ylabel = 'Age-Specific Loneliness Burden'
     else:
-        pd_ = dict(ages=xlabels, y=pdata['LI_c'])
-        cd_ = dict(ages=xlabels, y=cdata['LI_c'])
+        py, cy = pdata['LI_c'], cdata['LI_c']
         title = f'Age-Specific Loneliness Index, {year}   <i>LI(c) = |g(c)| \u00d7 V(c) \u00d7 s(c)</i>'
         ylabel = 'Age-Specific Loneliness Index'
+    pd_ = dict(ages=xlabels, y=py)
+    cd_ = dict(ages=xlabels, y=cy)
     _add_pair(fig, pd_, cd_, ploc, cloc, 'ages', 'y', scale=100.0, fill_primary=burden)
     tick_idx = np.arange(0, len(ages), 5)
     fig.update_layout(
@@ -407,7 +405,7 @@ def _plot_age_curve(pdata, cdata, ploc, cloc, year, burden=False):
                    categoryorder='array', categoryarray=xlabels,
                    showgrid=True, gridcolor='lightgray'),
         yaxis=_yaxis(ylabel),
-        legend=_legend(), plot_bgcolor='white', hovermode='x unified', height=500)
+        legend=_LEGEND, plot_bgcolor=_PLOT_BG, hovermode='x unified', height=500)
     return fig
 
 
@@ -592,7 +590,7 @@ def render_tab_time_series(pts, cts, T):
         st.plotly_chart(plot_time_series(pts, cts, 'LII', T, show_legend=True), use_container_width=True)
     with c2:
         st.plotly_chart(plot_time_series(pts, cts, 'LBI', T, show_legend=False), use_container_width=True)
-    c3, c4 = st.columns(2)
+    c3, _ = st.columns(2)
     with c3:
         st.plotly_chart(plot_time_series(pts, cts, 'S_T', T, show_legend=False), use_container_width=True)
 
@@ -607,10 +605,24 @@ def render_tab_components(pd_, cd_, ploc, cloc, year, alpha):
     st.plotly_chart(plot_components(cd_, cloc, year, alpha, COLOR['secondary']), use_container_width=True)
 
 
+def _decomp_card(label: str, value: float, denom: float, desc: str) -> str:
+    pct = value / denom * 100 if np.isfinite(denom) else np.nan
+    vc = _delta_color(value)
+    pct_str = f"{pct:+.1f}% of \u0394LBI" if np.isfinite(pct) else ""
+    return (
+        f'<div style="background:{THEME["card"]}; border:1px solid {THEME["border_dark"]}; '
+        f'border-radius:10px; padding:0.5rem 0.7rem; box-shadow:0 3px 10px rgba(0,0,0,0.1);">'
+        f'<div style="color:{THEME["text_muted"]}; font-weight:500; font-size:0.78rem;">{label}</div>'
+        f'<div style="font-size:1.5rem; color:{vc}; font-weight:700;">{value:+.4f}</div>'
+        f'<div style="font-size:0.85rem; color:{vc};">{pct_str}</div>'
+        f'<div style="font-size:0.75rem; color:{THEME["text_muted"]}; margin-top:0.2rem;">{desc}</div>'
+        f'</div>')
+
+
 def render_tab_decomposition(pd_, cd_, ploc, cloc, year, T):
     decomp = decompose_lbi_difference(pd_, cd_)
 
-    # --- Summary table (paper Table 1 style) -------------------------------
+    # --- Summary cards (paper Table 1 style) --------------------------------
     denom = decomp['delta_LBI'] if abs(decomp['delta_LBI']) > 1e-10 else np.nan
     components = [
         ('Population Aging', decomp['population_aging'],
@@ -623,18 +635,9 @@ def render_tab_decomposition(pd_, cd_, ploc, cloc, year, T):
 
     cols = st.columns(3)
     for col, (label, value, desc) in zip(cols, components):
-        pct = value / denom * 100 if np.isfinite(denom) else np.nan
-        vc = _delta_color(value)
-        pct_str = f"{pct:+.1f}% of \u0394LBI" if np.isfinite(pct) else ""
         with col:
-            st.markdown(
-                f'<div style="background:{THEME["card"]}; border:1px solid {THEME["border_dark"]}; '
-                f'border-radius:10px; padding:0.5rem 0.7rem; box-shadow:0 3px 10px rgba(0,0,0,0.1);">'
-                f'<div style="color:{THEME["text_muted"]}; font-weight:500; font-size:0.78rem;">{label}</div>'
-                f'<div style="font-size:1.5rem; color:{vc}; font-weight:700;">{value:+.4f}</div>'
-                f'<div style="font-size:0.85rem; color:{vc};">{pct_str}</div>'
-                f'<div style="font-size:0.75rem; color:{THEME["text_muted"]}; margin-top:0.2rem;">{desc}</div>'
-                f'</div>', unsafe_allow_html=True)
+            st.markdown(_decomp_card(label, value, denom, desc),
+                        unsafe_allow_html=True)
 
     # --- Waterfall chart ---------------------------------------------------
     labels = ['Population<br>Aging', 'Gender<br>Gap', 'Age<br>Concentration',
@@ -655,7 +658,7 @@ def render_tab_decomposition(pd_, cd_, ploc, cloc, year, T):
     fig1.update_layout(
         title=f"Oaxaca\u2013Kitagawa Decomposition: \u0394LBI = {decomp['delta_LBI']:+.4f} ({ploc} \u2212 {cloc})",
         yaxis=_yaxis("Contribution to \u0394LBI"),
-        showlegend=False, height=420, plot_bgcolor='white',
+        showlegend=False, height=420, plot_bgcolor=_PLOT_BG,
         margin=dict(t=60, b=40))
     st.plotly_chart(fig1, use_container_width=True)
 
@@ -678,7 +681,7 @@ def render_tab_decomposition(pd_, cd_, ploc, cloc, year, T):
         title=f"Age-Specific Contributions to \u0394LII ({ploc} \u2212 {cloc})",
         xaxis=_xaxis(decomp['ages']),
         yaxis=_yaxis("Contribution to \u0394LII"),
-        barmode='relative', height=420, plot_bgcolor='white',
+        barmode='relative', height=420, plot_bgcolor=_PLOT_BG,
         legend=dict(orientation='h', yanchor='top', y=-0.18,
                     xanchor='center', x=0.5))
     st.plotly_chart(fig2, use_container_width=True)
@@ -701,24 +704,22 @@ def render_tab_map(df_hash, year, T, alpha, c_max, df):
                     use_container_width=True, config={'scrollZoom': True})
 
     countries = glbi[glbi['Location'].map(COUNTRY_TO_ISO3).notna()]
+    col_cfg = {
+        'LBI': st.column_config.NumberColumn(format='%.3f'),
+        'LII': st.column_config.NumberColumn(format='%.3f'),
+        'S_T': st.column_config.NumberColumn(format='%.1f%%'),
+        'MF_ratio': st.column_config.NumberColumn(format='%.3f'),
+    }
     c1, c2 = st.columns(2)
-    metric_cols = ['LBI', 'LII', 'S_T', 'MF_ratio']
     for col, label, fn in [(c1, "Top 10", 'nlargest'), (c2, "Bottom 10", 'nsmallest')]:
         with col:
             st.markdown(f"**{label} Countries by {metric_label(metric, T)}**")
-            tbl = getattr(countries, fn)(10, metric)[['Location'] + metric_cols].reset_index(drop=True)
+            tbl = getattr(countries, fn)(10, metric)[['Location', metric]].reset_index(drop=True)
             tbl.index = tbl.index + 1
-            tbl = tbl.copy()
-            tbl['S_T'] = tbl['S_T'] * 100
-            col_cfg = {
-                'LBI': st.column_config.NumberColumn(format='%.3f'),
-                'LII': st.column_config.NumberColumn(format='%.3f'),
-                'S_T': st.column_config.NumberColumn(format='%.1f%%'),
-                'MF_ratio': st.column_config.NumberColumn(format='%.3f'),
-            }
-            # Show only Location + selected metric column
-            display_cols = ['Location', metric]
-            st.dataframe(tbl[display_cols], column_config=col_cfg, use_container_width=True)
+            if metric == 'S_T':
+                tbl = tbl.copy()
+                tbl['S_T'] = tbl['S_T'] * 100
+            st.dataframe(tbl, column_config=col_cfg, use_container_width=True)
 
 
 def render_tab_methodology(T, c_max, alpha):
@@ -848,8 +849,8 @@ def main():
     with st.sidebar.expander("Export data", expanded=False):
         cross = pd.DataFrame({
             'Age': pd_['ages'],
-            **{f'{ploc}_{k}': pd_[v] for k, v in _EXPORT_ALL},
-            **{f'{cloc}_{k}': cd_[v] for k, v in _EXPORT_BASIC},
+            **{f'{ploc}_{col}': pd_[key] for col, key in _EXPORT_ALL.items()},
+            **{f'{cloc}_{col}': cd_[key] for col, key in _EXPORT_BASIC.items()},
         })
         st.download_button("Cross-section CSV",
             cross.to_csv(index=False),
