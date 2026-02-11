@@ -759,7 +759,7 @@ oldest cohorts.
 The cohort-specific Loneliness Index combines gender imbalance, age vulnerability,
 and cohort weight:
 
-> **LI<sub>c</sub> = |g<sub>c</sub>| &times; V<sub>c</sub>(&alpha;) &times; s<sub>c</sub>**
+<p style="font-size:1.3rem; text-align:center; margin:1rem 0;"><b>LI<sub>c</sub> = |g<sub>c</sub>| &times; V<sub>c</sub>(&alpha;) &times; s<sub>c</sub></b></p>
 
 ---
 
@@ -781,18 +781,17 @@ LBI captures total burden by weighting intensity with the elderly population sha
 The difference in LBI between two countries A and B decomposes into three
 components (equations 4&ndash;6 in Lokshin & Foster):
 
-> **&Delta;LBI = LBI<sub>A</sub> &minus; LBI<sub>B</sub>**
+<p style="font-size:1.3rem; text-align:center; margin:1rem 0;"><b>&Delta;LBI = LBI<sub>A</sub> &minus; LBI<sub>B</sub></b></p>
 
 **Step 1.** Separate the elderly-share effect from intensity differences (eq. 4):
 
-> &Delta;LBI = &Delta;S<sub>T</sub> &times; <span style="text-decoration:overline">LII</span>
-> &nbsp;+&nbsp; <span style="text-decoration:overline">S<sub>T</sub></span> &times; &Delta;LII
+<p style="font-size:1.2rem; text-align:center; margin:1rem 0;">&Delta;LBI = &Delta;S<sub>T</sub> &times; <span style="text-decoration:overline">LII</span> &nbsp;+&nbsp; <span style="text-decoration:overline">S<sub>T</sub></span> &times; &Delta;LII</p>
 
 where bars denote averages of the two countries.
 
 **Step 2.** Decompose &Delta;LII into gender-gap and age-concentration effects (eq. 5):
 
-> &Delta;LII = &Sigma;<sub>c</sub> [ &Delta;|g<sub>c</sub>| &times; V<sub>c</sub> &times; <span style="text-decoration:overline">s<sub>c</sub></span> + |<span style="text-decoration:overline">g<sub>c</sub></span>| &times; V<sub>c</sub> &times; &Delta;s<sub>c</sub> ] &times; 100
+<p style="font-size:1.2rem; text-align:center; margin:1rem 0;">&Delta;LII = &Sigma;<sub>c</sub> [ &Delta;|g<sub>c</sub>| &times; V<sub>c</sub> &times; <span style="text-decoration:overline">s<sub>c</sub></span> + |<span style="text-decoration:overline">g<sub>c</sub></span>| &times; V<sub>c</sub> &times; &Delta;s<sub>c</sub> ] &times; 100</p>
 
 **Step 3.** Three-component decomposition of &Delta;LBI (eq. 6):
 
