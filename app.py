@@ -51,7 +51,6 @@ COLOR = {
 }
 
 UN_WPP_URL = "https://population.un.org/wpp/"
-UN_WPP_DOWNLOAD_URL = "https://population.un.org/wpp/Download/Standard/CSV/"
 
 # Fields exported in cross-section download
 _EXPORT_ALL = [('PopMale', 'pop_male'), ('PopFemale', 'pop_female'),
@@ -110,13 +109,6 @@ CUSTOM_CSS = f"""
     section[data-testid="stSidebar"] {{ background-color: {THEME['bg']}; }}
     section[data-testid="stSidebar"] .stMarkdown strong {{ color: {THEME['accent']}; }}
     section[data-testid="stSidebar"] [data-baseweb="select"] {{ font-size: 1.15rem; }}
-
-    .footer {{
-        background-color: {THEME['card']}; padding: 1.5rem; border-radius: 10px;
-        margin-top: 2rem; border: 1px solid {THEME['border']};
-    }}
-    .footer a {{ color: {THEME['accent']}; text-decoration: none; }}
-    .footer a:hover {{ text-decoration: underline; }}
 
     .stDownloadButton button {{
         background-color: {THEME['accent']}; color: white;
@@ -595,11 +587,12 @@ def render_metrics(pd_, cd_, ploc, cloc, year, T):
 
 
 def render_tab_time_series(pts, cts, T):
-    c1, c2, c3 = st.columns(3)
+    c1, c2 = st.columns(2)
     with c1:
         st.plotly_chart(plot_time_series(pts, cts, 'LII', T, show_legend=True), use_container_width=True)
     with c2:
         st.plotly_chart(plot_time_series(pts, cts, 'LBI', T, show_legend=False), use_container_width=True)
+    c3, c4 = st.columns(2)
     with c3:
         st.plotly_chart(plot_time_series(pts, cts, 'S_T', T, show_legend=False), use_container_width=True)
 
@@ -610,19 +603,12 @@ def render_tab_curves(pd_, cd_, ploc, cloc, year):
 
 
 def render_tab_components(pd_, cd_, ploc, cloc, year, alpha):
-    st.markdown(f"**Formula**: LI_c = |g_c| \u00d7 V_c(\u03b1) \u00d7 s_c, where: "
-                f"g_c = normalized gender gap, V_c(\u03b1) = vulnerability (\u03b1={alpha}), "
-                f"s_c = cohort share")
     st.plotly_chart(plot_components(pd_, ploc, year, alpha, COLOR['primary']), use_container_width=True)
     st.plotly_chart(plot_components(cd_, cloc, year, alpha, COLOR['secondary']), use_container_width=True)
 
 
 def render_tab_decomposition(pd_, cd_, ploc, cloc, year, T):
     decomp = decompose_lbi_difference(pd_, cd_)
-
-    st.markdown(
-        f"**\u0394LBI** = LBI({ploc}) \u2212 LBI({cloc}) = "
-        f"{pd_['LBI']:.4f} \u2212 {cd_['LBI']:.4f} = **{decomp['delta_LBI']:.4f}**")
 
     # --- Summary table (paper Table 1 style) -------------------------------
     denom = decomp['delta_LBI'] if abs(decomp['delta_LBI']) > 1e-10 else np.nan
@@ -667,7 +653,7 @@ def render_tab_decomposition(pd_, cd_, ploc, cloc, year, T):
         text=[f"{v:+.4f}" for v in values] + [f"{decomp['delta_LBI']:+.4f}"],
         textposition="outside", cliponaxis=False))
     fig1.update_layout(
-        title=f"Oaxaca\u2013Kitagawa Decomposition of \u0394LBI ({ploc} \u2212 {cloc})",
+        title=f"Oaxaca\u2013Kitagawa Decomposition: \u0394LBI = {decomp['delta_LBI']:+.4f} ({ploc} \u2212 {cloc})",
         yaxis=_yaxis("Contribution to \u0394LBI"),
         showlegend=False, height=420, plot_bgcolor='white',
         margin=dict(t=60, b=40))
@@ -682,11 +668,11 @@ def render_tab_decomposition(pd_, cd_, ploc, cloc, year, T):
     fig2 = go.Figure()
     fig2.add_trace(go.Bar(
         x=decomp['ages'], y=decomp['gender_gap_by_age'],
-        name='Gender Gap Effect', marker_color=COLOR['female'],
+        name='Gender Gap Effect', marker_color=COLOR['primary'],
         hovertemplate='Age %{x}<br>Gender gap: %{y:.4f}<extra></extra>'))
     fig2.add_trace(go.Bar(
         x=decomp['ages'], y=decomp['age_conc_by_age'],
-        name='Age Concentration Effect', marker_color=COLOR['male'],
+        name='Age Concentration Effect', marker_color=COLOR['secondary'],
         hovertemplate='Age %{x}<br>Age concentration: %{y:.4f}<extra></extra>'))
     fig2.update_layout(
         title=f"Age-Specific Contributions to \u0394LII ({ploc} \u2212 {cloc})",
@@ -708,31 +694,36 @@ def render_tab_pyramids(pd_, cd_, ploc, cloc, year, T):
 
 def render_tab_map(df_hash, year, T, alpha, c_max, df):
     glbi = _global_lbi(df_hash, year, T, alpha, c_max, df)
-    metric = st.radio("Select metric:", ['LBI', 'LII', 'S_T', 'MF_ratio'],
-        format_func=lambda x: metric_label(x, T), horizontal=True)
+    metric = st.radio("Metric", ['LBI', 'LII', 'S_T', 'MF_ratio'],
+        format_func=lambda x: metric_label(x, T), horizontal=True,
+        label_visibility='collapsed')
     st.plotly_chart(plot_world_map(glbi, year, metric, T),
                     use_container_width=True, config={'scrollZoom': True})
 
     countries = glbi[glbi['Location'].map(COUNTRY_TO_ISO3).notna()]
     c1, c2 = st.columns(2)
+    metric_cols = ['LBI', 'LII', 'S_T', 'MF_ratio']
     for col, label, fn in [(c1, "Top 10", 'nlargest'), (c2, "Bottom 10", 'nsmallest')]:
         with col:
             st.markdown(f"**{label} Countries by {metric_label(metric, T)}**")
-            tbl = getattr(countries, fn)(10, metric)[['Location', 'LBI', 'LII', 'S_T', 'MF_ratio']].reset_index(drop=True)
+            tbl = getattr(countries, fn)(10, metric)[['Location'] + metric_cols].reset_index(drop=True)
             tbl.index = tbl.index + 1
             tbl = tbl.copy()
             tbl['S_T'] = tbl['S_T'] * 100
-            st.dataframe(tbl, column_config={
+            col_cfg = {
                 'LBI': st.column_config.NumberColumn(format='%.3f'),
                 'LII': st.column_config.NumberColumn(format='%.3f'),
                 'S_T': st.column_config.NumberColumn(format='%.1f%%'),
                 'MF_ratio': st.column_config.NumberColumn(format='%.3f'),
-            }, use_container_width=True)
+            }
+            # Show only Location + selected metric column
+            display_cols = ['Location', metric]
+            st.dataframe(tbl[display_cols], column_config=col_cfg, use_container_width=True)
 
 
 def render_tab_methodology(T, c_max, alpha):
     st.markdown(f"""
-<div style="max-width:800px;">
+<div style="max-width:900px;">
 
 #### Definitions
 
@@ -819,18 +810,6 @@ Lokshin, M. and J. Foster. "Loneliness Risk Index."
 """, unsafe_allow_html=True)
 
 
-def render_footer():
-    st.markdown("---")
-    st.markdown(f"""
-    <div class="footer">
-        <p><strong>Methodology:</strong> Lokshin, M. and J. Foster. "Loneliness Risk Index."</p>
-        <p><strong>Data:</strong>
-            <a href="{UN_WPP_URL}" target="_blank">UN World Population Prospects 2024</a>
-            (<a href="{UN_WPP_DOWNLOAD_URL}" target="_blank">Download</a>)</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-
 # ============================================================================
 # MAIN
 # ============================================================================
@@ -900,8 +879,6 @@ def main():
         render_tab_map(df_hash, year, T, alpha, c_max, df)
     with tab_meth:
         render_tab_methodology(T, c_max, alpha)
-
-    render_footer()
 
 
 if __name__ == "__main__":
