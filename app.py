@@ -730,6 +730,96 @@ def render_tab_map(df_hash, year, T, alpha, c_max, df):
             }, use_container_width=True)
 
 
+def render_tab_methodology(T, c_max, alpha):
+    st.markdown(f"""
+<div style="max-width:800px;">
+
+#### Definitions
+
+Let **M<sub>c</sub>** and **F<sub>c</sub>** denote the number of men and women in age cohort *c*.
+The **elderly threshold** *T* (default {T}) distinguishes the elderly population, and
+**c<sub>max</sub>** ({c_max}) is the maximum age in the analysis.
+
+| Symbol | Name | Definition |
+|--------|------|------------|
+| **g<sub>c</sub>** | Gender ratio | (F<sub>c</sub> &minus; M<sub>c</sub>) / (F<sub>c</sub> + M<sub>c</sub>) |
+| **V<sub>c</sub>(&alpha;)** | Vulnerability factor | ((c &minus; T + 1) / (c<sub>max</sub> &minus; T + 1))<sup>&alpha;</sup> |
+| **s<sub>c</sub>** | Cohort share | (M<sub>c</sub> + F<sub>c</sub>) / N<sub>T</sub> |
+| **S<sub>T</sub>** | Elderly population share | N<sub>T</sub> / N |
+| **N<sub>T</sub>** | Total elderly population | &Sigma;<sub>c</sub> (M<sub>c</sub> + F<sub>c</sub>) for c &ge; T |
+
+The vulnerability parameter **&alpha;** (default {alpha}) controls how steeply
+vulnerability increases with age. Higher &alpha; amplifies the contribution of the
+oldest cohorts.
+
+---
+
+#### Age-Specific Loneliness Index
+
+The cohort-specific Loneliness Index combines gender imbalance, age vulnerability,
+and cohort weight:
+
+> **LI<sub>c</sub> = |g<sub>c</sub>| &times; V<sub>c</sub>(&alpha;) &times; s<sub>c</sub>**
+
+---
+
+#### Aggregate Indices
+
+| Index | Formula | Interpretation |
+|-------|---------|----------------|
+| **LII** (Loneliness Intensity) | &Sigma;<sub>c</sub> LI<sub>c</sub> &times; 100 | Intensity of gender imbalance among the elderly, independent of elderly population size |
+| **LBI** (Loneliness Burden) | S<sub>T</sub> &times; LII | Total loneliness burden, accounting for both intensity and the share of elderly in the population |
+
+LII is **scale-invariant**: two countries with the same within-elderly age
+structure and gender ratios have the same LII regardless of the elderly share.
+LBI captures total burden by weighting intensity with the elderly population share.
+
+---
+
+#### Oaxaca&ndash;Kitagawa Decomposition
+
+The difference in LBI between two countries A and B decomposes into three
+components (equations 4&ndash;6 in Lokshin & Foster):
+
+> **&Delta;LBI = LBI<sub>A</sub> &minus; LBI<sub>B</sub>**
+
+**Step 1.** Separate the elderly-share effect from intensity differences (eq. 4):
+
+> &Delta;LBI = &Delta;S<sub>T</sub> &times; <span style="text-decoration:overline">LII</span>
+> &nbsp;+&nbsp; <span style="text-decoration:overline">S<sub>T</sub></span> &times; &Delta;LII
+
+where bars denote averages of the two countries.
+
+**Step 2.** Decompose &Delta;LII into gender-gap and age-concentration effects (eq. 5):
+
+> &Delta;LII = &Sigma;<sub>c</sub> [ &Delta;|g<sub>c</sub>| &times; V<sub>c</sub> &times; <span style="text-decoration:overline">s<sub>c</sub></span> + |<span style="text-decoration:overline">g<sub>c</sub></span>| &times; V<sub>c</sub> &times; &Delta;s<sub>c</sub> ] &times; 100
+
+**Step 3.** Three-component decomposition of &Delta;LBI (eq. 6):
+
+| Component | Formula | Interpretation |
+|-----------|---------|----------------|
+| **Population Aging** | &Delta;S<sub>T</sub> &times; <span style="text-decoration:overline">LII</span> | Difference in elderly population shares |
+| **Gender Gap** | <span style="text-decoration:overline">S<sub>T</sub></span> &times; &Sigma;<sub>c</sub> [&Delta;|g<sub>c</sub>| &times; V<sub>c</sub> &times; <span style="text-decoration:overline">s<sub>c</sub></span>] &times; 100 | Differences in male/female longevity by age |
+| **Age Concentration** | <span style="text-decoration:overline">S<sub>T</sub></span> &times; &Sigma;<sub>c</sub> [|<span style="text-decoration:overline">g<sub>c</sub></span>| &times; V<sub>c</sub> &times; &Delta;s<sub>c</sub>] &times; 100 | Where within the elderly the gender gaps are concentrated |
+
+These three components sum to &Delta;LBI.
+
+---
+
+#### Data Source
+
+Population data from
+<a href="{UN_WPP_URL}" target="_blank">UN World Population Prospects 2024</a>,
+single-year age groups by sex, medium variant, 1950&ndash;2100.
+
+#### Reference
+
+Lokshin, M. and J. Foster. "Loneliness Risk Index."
+
+</div>
+""", unsafe_allow_html=True)
+
+
 def render_footer():
     st.markdown("---")
     st.markdown(f"""
@@ -793,9 +883,9 @@ def main():
             use_container_width=True)
 
     # --- Tabs --------------------------------------------------------------
-    tab_cur, tab_ts, tab_dec, tab_comp, tab_pyr, tab_map = st.tabs([
+    tab_cur, tab_ts, tab_dec, tab_comp, tab_pyr, tab_map, tab_meth = st.tabs([
         "Age Curves", "Time Series", "Decomposition",
-        "Components", "Pyramids", "World Map"])
+        "Components", "Pyramids", "World Map", "Methodology"])
 
     with tab_cur:
         render_tab_curves(pd_, cd_, ploc, cloc, year)
@@ -809,6 +899,8 @@ def main():
         render_tab_pyramids(pd_, cd_, ploc, cloc, year, T)
     with tab_map:
         render_tab_map(df_hash, year, T, alpha, c_max, df)
+    with tab_meth:
+        render_tab_methodology(T, c_max, alpha)
 
     render_footer()
 
