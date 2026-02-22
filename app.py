@@ -53,9 +53,9 @@ COLOR = {
 UN_WPP_URL = "https://population.un.org/wpp/"
 
 # Fields exported in cross-section download (column_name → data_key)
-_EXPORT_ALL = {'pop_male': 'PopMale', 'pop_female': 'PopFemale',
+_EXPORT_ALL = {'pop_male': 'pop_male', 'pop_female': 'pop_female',
                'g_c': 'g_c', 'V_c': 'V_c', 's_c': 's_c', 'LI_c': 'LI_c'}
-_EXPORT_BASIC = {'pop_male': 'PopMale', 'pop_female': 'PopFemale',
+_EXPORT_BASIC = {'pop_male': 'pop_male', 'pop_female': 'pop_female',
                  'g_c': 'g_c', 'LI_c': 'LI_c'}
 
 
