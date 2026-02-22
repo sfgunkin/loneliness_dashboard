@@ -6,15 +6,15 @@ Uses UN World Population Prospects 2024 data.
 Run with: streamlit run app.py
 """
 
+import os
 from typing import Optional
 
-import streamlit as st
-import pandas as pd
 import numpy as np
-import plotly.graph_objects as go
+import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+import streamlit as st
 from plotly.subplots import make_subplots
-import os
 
 from iso3_codes import COUNTRY_TO_ISO3
 
@@ -52,11 +52,9 @@ COLOR = {
 
 UN_WPP_URL = "https://population.un.org/wpp/"
 
-# Fields exported in cross-section download (column_name → data_key)
-_EXPORT_ALL = {'pop_male': 'pop_male', 'pop_female': 'pop_female',
-               'g_c': 'g_c', 'V_c': 'V_c', 's_c': 's_c', 'LI_c': 'LI_c'}
-_EXPORT_BASIC = {'pop_male': 'pop_male', 'pop_female': 'pop_female',
-                 'g_c': 'g_c', 'LI_c': 'LI_c'}
+# Fields exported in cross-section download
+_EXPORT_ALL = ['pop_male', 'pop_female', 'g_c', 'V_c', 's_c', 'LI_c']
+_EXPORT_BASIC = ['pop_male', 'pop_female', 'g_c', 'LI_c']
 
 
 def metric_label(key: str, T: int = 60) -> str:
@@ -245,16 +243,16 @@ def decompose_lbi_difference(pd_: dict, cd_: dict) -> dict:
     # Eq (4): first term — population aging effect
     population_aging = (S_T_A - S_T_B) * LII_bar
 
-    # Align age arrays
+    # Align age arrays (both are sorted via sort_values in calculate_indices)
     common_ages = np.intersect1d(pd_['ages'], cd_['ages'])
-    idx_A = {a: i for i, a in enumerate(pd_['ages'])}
-    idx_B = {a: i for i, a in enumerate(cd_['ages'])}
+    mask_a = np.isin(pd_['ages'], common_ages)
+    mask_b = np.isin(cd_['ages'], common_ages)
 
-    g_A = np.array([np.abs(pd_['g_c'][idx_A[a]]) for a in common_ages])
-    g_B = np.array([np.abs(cd_['g_c'][idx_B[a]]) for a in common_ages])
-    V_c = np.array([pd_['V_c'][idx_A[a]] for a in common_ages])
-    s_A = np.array([pd_['s_c'][idx_A[a]] for a in common_ages])
-    s_B = np.array([cd_['s_c'][idx_B[a]] for a in common_ages])
+    g_A = np.abs(pd_['g_c'][mask_a])
+    g_B = np.abs(cd_['g_c'][mask_b])
+    V_c = pd_['V_c'][mask_a]
+    s_A = pd_['s_c'][mask_a]
+    s_B = cd_['s_c'][mask_b]
 
     delta_g = g_A - g_B
     delta_s = s_A - s_B
@@ -284,8 +282,7 @@ def _time_series_vectorized(df_loc: pd.DataFrame, location: str,
     if eld.empty:
         return pd.DataFrame()
 
-    ages = np.arange(T, c_max + 1)
-    eld['V_c'] = eld['AgeGrpStart'].map(dict(zip(ages, vulnerability_factor(ages, T, alpha, c_max))))
+    eld['V_c'] = vulnerability_factor(eld['AgeGrpStart'].values, T, alpha, c_max)
 
     pop_total = (eld['PopMale'] + eld['PopFemale']).replace(0, 1)
     eld['g_c'] = (eld['PopFemale'] - eld['PopMale']) / pop_total
@@ -509,7 +506,7 @@ def render_sidebar(locations, years):
     ploc = st.sidebar.selectbox(
         "Country A", locations,
         index=locations.index('Japan') if 'Japan' in locations else 0)
-    comp_opts = [l for l in locations if l != ploc]
+    comp_opts = [loc for loc in locations if loc != ploc]
     cloc = st.sidebar.selectbox(
         "Country B", comp_opts,
         index=comp_opts.index('Germany') if 'Germany' in comp_opts else 0)
@@ -562,9 +559,7 @@ def render_metrics(pd_, cd_, ploc, cloc, year, T):
     dvals = [p - c for p, c in zip(pvals, cvals)]
 
     border_row = f'border-bottom:1px solid {THEME["border"]};'
-    n = len(metrics)
-    col_w = '17%'
-    cols_html = '<col style="width:auto;">' + f'<col style="width:{col_w};">' * n
+    cols_html = '<col style="width:auto;">' + '<col style="width:17%;">' * len(metrics)
     table = f"""
     <table style="width:100%; border-collapse:collapse; background:{THEME['card']};
                   border:1px solid {THEME['border_dark']}; border-radius:10px;
@@ -849,8 +844,8 @@ def main():
     with st.sidebar.expander("Export data", expanded=False):
         cross = pd.DataFrame({
             'Age': pd_['ages'],
-            **{f'{ploc}_{col}': pd_[key] for col, key in _EXPORT_ALL.items()},
-            **{f'{cloc}_{col}': cd_[key] for col, key in _EXPORT_BASIC.items()},
+            **{f'{ploc}_{col}': pd_[col] for col in _EXPORT_ALL},
+            **{f'{cloc}_{col}': cd_[col] for col in _EXPORT_BASIC},
         })
         st.download_button("Cross-section CSV",
             cross.to_csv(index=False),
